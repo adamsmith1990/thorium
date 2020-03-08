@@ -72,6 +72,7 @@ import transportersTypeDefs from "./transporters.js";
 import transwarpTypeDefs from "./transwarp.js";
 import triggerTypeDefs from "./trigger.js";
 import viewscreenTypeDefs from "./viewscreen.js";
+import lifeSupportTypeDefs from "./lifeSupport";
 
 export const actions = actionsTypeDefs;
 export const ambiance = ambianceTypeDefs;
@@ -147,3 +148,4 @@ export const transporters = transportersTypeDefs;
 export const transwarp = transwarpTypeDefs;
 export const trigger = triggerTypeDefs;
 export const viewscreen = viewscreenTypeDefs;
+export const lifeSupport = lifeSupportTypeDefs;

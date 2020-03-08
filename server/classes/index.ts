@@ -61,3 +61,4 @@ export {default as Macro, MacroButtonConfig} from "./macro";
 export {default as GoogleSheets} from "./googleSheets";
 export {RecordSnippet, Record} from "./records";
 export {MidiSet} from "./midi";
+export {default as LifeSupport} from "./lifeSupport";

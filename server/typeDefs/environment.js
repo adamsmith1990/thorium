@@ -12,6 +12,18 @@ const schema = gql`
     temperature: Float
     humidity: Float
     gravity: Float
+    carbonDioxide: Float
+    water: Float
+    waste: Float
+    waterToWaste: Float
+    filtration: Float
+    purification: Float
+    humidification: Float
+    electrolysis: Float
+    oxygenInjector: Float
+    nitrogenInjector: Float
+    c02Scrubber: Float
+    heater: Float
   }
   input EnvironmentInput {
     id: ID
@@ -22,6 +34,18 @@ const schema = gql`
     temperature: Float
     humidity: Float
     gravity: Float
+    carbonDioxide: Float
+    water: Float
+    waste: Float
+    waterToWaste: Float
+    filtration: Float
+    purification: Float
+    humidification: Float
+    electrolysis: Float
+    oxygenInjector: Float
+    nitrogenInjector: Float
+    c02Scrubber: Float
+    heater: Float
   }
 
   extend type Mutation {

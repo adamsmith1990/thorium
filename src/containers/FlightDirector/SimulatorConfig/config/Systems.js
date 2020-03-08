@@ -8,7 +8,7 @@ import {
   Button,
   ButtonGroup,
 } from "helpers/reactstrap";
-import {titleCase, camelCase} from "change-case";
+import {capitalCase, camelCase} from "change-case";
 import {Query, Mutation} from "react-apollo";
 import gql from "graphql-tag.macro";
 import * as Configs from "./systemsConfig";
@@ -16,6 +16,7 @@ import * as Configs from "./systemsConfig";
 const systems = [
   "ComputerCore",
   "Coolant",
+  "Countermeasures",
   "Crm",
   "Engine",
   "InternalComm",
@@ -60,7 +61,7 @@ const System = ({id, selected, type, displayName, name, click, added}) => {
   return (
     <Col
       key={id}
-      sm={4}
+      sm={3}
       onClick={click}
       style={{
         backgroundColor: selected ? "rgba(255,255,255,0.4)" : "transparent",
@@ -85,7 +86,7 @@ const System = ({id, selected, type, displayName, name, click, added}) => {
       </p>
       {type !== name && (
         <p style={{textAlign: "center"}}>
-          <small>{titleCase(type)}</small>
+          <small>{capitalCase(type)}</small>
         </p>
       )}
     </Col>
@@ -217,7 +218,7 @@ class SystemsConfig extends Component {
                             selected={s === addSystem}
                             added={this.getAdded(s, data.systems)}
                             name={s}
-                            displayName={titleCase(s)}
+                            displayName={capitalCase(s)}
                             type={s}
                             click={() => this.setState({addSystem: s})}
                           />

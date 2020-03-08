@@ -27,6 +27,7 @@ function setClient(id) {
 
 async function setClientId() {
   const hostname = await ipcRenderer.invoke("get-hostname");
+
   const id = `${hostname}${browserCount > 1 ? ` (${browserCount})` : ""}`;
   const clientList = getClientList(hostname);
   const clientIndex = clientList.indexOf(clientId);
@@ -50,13 +51,29 @@ function getClientList(hostname) {
   return clientList;
 }
 
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", async function() {
   if (localStorage.getItem("thorium_startKiosked") !== "false") {
     if (document.getElementById("start-kiosked")) {
       document.getElementById("start-kiosked").checked = true;
     }
   }
+  const autostart = await ipcRenderer.invoke("getServerAutostart");
+  const autostartEl = document.getElementById("remember-server");
+  if (autostartEl) {
+    autostartEl.checked = Boolean(autostart);
+    autostartEl.addEventListener("change", e => {
+      ipcRenderer.send("setServerAutostart", e.target.checked);
+    });
+  }
+  if (autostart) {
+    const cancelAutostartEl = document.getElementById("stop-auto-start");
+    cancelAutostartEl.hidden = false;
+  }
 });
+
+window.cancelAutostart = function cancelAutostart() {
+  ipcRenderer.send("cancelServerAutostart");
+};
 
 window.loadPage = function loadPage(url) {
   let auto = false;
@@ -68,7 +85,9 @@ window.loadPage = function loadPage(url) {
 };
 window.startServer = function startServer() {
   let auto = false;
-  if (document.getElementById("remember-server").checked) auto = true;
+  if (document.getElementById("remember-server").checked) {
+    auto = true;
+  }
   ipcRenderer.send("startServer", auto);
   return;
 };
@@ -116,16 +135,27 @@ document.addEventListener(
   function() {
     // Network Settings
     const httpOnlyEl = document.getElementById("http-only");
+    const portEl = document.getElementById("port");
     if (httpOnlyEl) {
       httpOnlyEl.checked = httpOnly;
 
       httpOnlyEl.addEventListener("change", e => {
-        ipcRenderer.send("set-httpOnly", e.target.value);
+        ipcRenderer.send("set-httpOnly", e.target.checked);
         httpOnly = e.target.checked;
         thorium.httpOnly = e.target.checked;
+        if (portEl.value === "443" && httpOnly) {
+          portEl.value = "80";
+          ipcRenderer.send("set-port", 80);
+          port = 80;
+          thorium.port = 80;
+        } else if (portEl.value === "80" && !httpOnly) {
+          portEl.value = "443";
+          ipcRenderer.send("set-port", 443);
+          port = 443;
+          thorium.port = 443;
+        }
       });
     }
-    const portEl = document.getElementById("port");
     if (portEl) {
       portEl.value = port;
 
@@ -140,42 +170,43 @@ document.addEventListener(
     if (openEl) {
       openEl.addEventListener("click", openBrowser);
     }
+    const kioskEl = document.getElementById("open-client-window");
+    if (kioskEl) {
+      kioskEl.addEventListener("click", function openClient() {
+        ipcRenderer.send("loadPage", {
+          url: `${printUrl()}/client`,
+          kiosk: false,
+          auto: false,
+        });
+      });
+    }
+
     // Auto Update
     const autoUpdateEl = document.getElementById("auto-update");
     const autoUpdateLabel = document.getElementById("auto-update-label");
     const autoUpdateButton = document.getElementById("auto-update-download");
     const autoUpdateProgress = document.getElementById("download-progress");
     if (autoUpdateEl) {
-      fetch("https://api.github.com/repos/thorium-sim/thorium/releases")
-        .then(res => res.json())
-        .then(async res => {
-          const {asset, oldVersion, newVersion} = await ipcRenderer.invoke(
-            "get-update-asset",
-            res[0],
-          );
-          if (asset) {
-            autoUpdateLabel.innerText = `Your version of Thorium is outdated. Current version is ${newVersion}. Your version is ${oldVersion}`;
-            autoUpdateEl.classList.add("shown");
+      ipcRenderer.send("check-for-updates");
 
-            const url = asset.browser_download_url;
-            autoUpdateButton.addEventListener("click", () => {
-              ipcRenderer.send("downloadAutoUpdate", {url});
-              ipcRenderer.on("download-progress", function(e, progress) {
-                autoUpdateProgress.value = progress;
-              });
-              ipcRenderer.on("download-complete", function() {
-                autoUpdateLabel.innerText = `Update Complete!`;
-                autoUpdateProgress.hidden = true;
-              });
-              autoUpdateLabel.innerText = `Update is being downloaded to your downloads folder in the background... Please wait.`;
-              autoUpdateButton.hidden = true;
-              autoUpdateProgress.hidden = false;
-            });
-          }
-        })
-        .catch(() => {
-          //Oh well.
+      ipcRenderer.on("has-updates", function(e, {oldVersion, newVersion}) {
+        autoUpdateLabel.innerText = `Your version of Thorium is outdated. Current version is ${newVersion}. Your version is ${oldVersion}`;
+        autoUpdateEl.classList.add("shown");
+      });
+
+      autoUpdateButton.addEventListener("click", () => {
+        ipcRenderer.send("downloadAutoUpdate");
+        ipcRenderer.on("download-progress", function(e, progress) {
+          autoUpdateProgress.value = progress;
         });
+        ipcRenderer.on("download-complete", function() {
+          autoUpdateLabel.innerText = `Update Complete! Restart the app to apply the update.`;
+          autoUpdateProgress.hidden = true;
+        });
+        autoUpdateLabel.innerText = `Update is being downloaded. Please wait.`;
+        autoUpdateButton.hidden = true;
+        autoUpdateProgress.hidden = false;
+      });
     }
   },
   false,

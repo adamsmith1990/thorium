@@ -1,15 +1,15 @@
 import React from "react";
 import gql from "graphql-tag.macro";
 import {useSubscribeToMore} from "helpers/hooks/useQueryAndSubscribe";
-import {useQuery, useMutation} from "@apollo/react-hooks";
-import {titleCase} from "change-case";
+import {useQuery, useMutation} from "@apollo/client";
+import {capitalCase} from "change-case";
 import {DateTime} from "luxon";
 import {Button, ButtonGroup} from "reactstrap";
 import "./style.scss";
 import useFlightLocalStorage from "helpers/hooks/useFlightLocalStorage";
 
 const fragment = gql`
-  fragment RecordData on RecordSnippet {
+  fragment RecordDataCore on RecordSnippet {
     id
     name
     type
@@ -28,7 +28,7 @@ const fragment = gql`
 export const RECORDS_CORE_QUERY = gql`
   query Records($simulatorId: ID!) {
     recordSnippets(simulatorId: $simulatorId, visible: true) {
-      ...RecordData
+      ...RecordDataCore
     }
   }
   ${fragment}
@@ -36,7 +36,7 @@ export const RECORDS_CORE_QUERY = gql`
 export const RECORDS_CORE_SUB = gql`
   subscription TemplateUpdate($simulatorId: ID!) {
     recordSnippetsUpdate(simulatorId: $simulatorId, visible: true) {
-      ...RecordData
+      ...RecordDataCore
     }
   }
   ${fragment}
@@ -199,7 +199,7 @@ const RecordsCore = ({recordSnippets, simulator, flight: {id: flightId}}) => {
               {new DateTime.fromISO(r.timestamp).toLocaleString(
                 DateTime.TIME_SIMPLE,
               )}{" "}
-              - {titleCase(r.category)}: {r.contents}
+              - {capitalCase(r.category)}: {r.contents}
             </p>
           ))}
       </div>

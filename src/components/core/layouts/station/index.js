@@ -13,10 +13,27 @@ import {
 } from "helpers/reactstrap";
 import {FaBan} from "react-icons/fa";
 import Views, {Widgets} from "components/views/index";
-import {titleCase} from "change-case";
+import {capitalCase} from "change-case";
 import ExtraMessageGroups from "./messageGroups";
 import LayoutList from "components/layouts";
 
+const EDIT_CARD = gql`
+  mutation EditCard(
+    $simulatorId: ID!
+    $station: String!
+    $cardName: String!
+    $newCardName: String
+    $cardComponent: String
+  ) {
+    editSimulatorStationCard(
+      simulatorId: $simulatorId
+      station: $station
+      cardName: $cardName
+      newCardName: $newCardName
+      cardComponent: $cardComponent
+    )
+  }
+`;
 const Layouts = Object.keys(LayoutList).filter(
   s => s.indexOf("Viewscreen") === -1,
 );
@@ -59,7 +76,7 @@ const Station = ({stations, simulatorId, station: stationName}) => {
     return cards.indexOf(comp) > -1;
   };
   const addCard = action => e => {
-    let name = prompt("What is the card name?", titleCase(e.target.value));
+    let name = prompt("What is the card name?", capitalCase(e.target.value));
     if (name) {
       const variables = {
         simulatorId,
@@ -203,23 +220,7 @@ const Station = ({stations, simulatorId, station: stationName}) => {
                               },
                             },
                           ]}
-                          mutation={gql`
-                            mutation EditCard(
-                              $simulatorId: ID!
-                              $station: String!
-                              $cardName: String!
-                              $newCardName: String
-                              $cardComponent: String
-                            ) {
-                              editSimulatorStationCard(
-                                simulatorId: $simulatorId
-                                station: $station
-                                cardName: $cardName
-                                newCardName: $newCardName
-                                cardComponent: $cardComponent
-                              )
-                            }
-                          `}
+                          mutation={EDIT_CARD}
                         >
                           {action => (
                             <Input
@@ -251,23 +252,7 @@ const Station = ({stations, simulatorId, station: stationName}) => {
                               },
                             },
                           ]}
-                          mutation={gql`
-                            mutation EditCard(
-                              $simulatorId: ID!
-                              $station: String!
-                              $cardName: String!
-                              $newCardName: String
-                              $cardComponent: String
-                            ) {
-                              editSimulatorStationCard(
-                                simulatorId: $simulatorId
-                                station: $station
-                                cardName: $cardName
-                                newCardName: $newCardName
-                                cardComponent: $cardComponent
-                              )
-                            }
-                          `}
+                          mutation={EDIT_CARD}
                         >
                           {action => (
                             <Input
@@ -418,7 +403,7 @@ const Station = ({stations, simulatorId, station: stationName}) => {
                         },
                       ]}
                       mutation={gql`
-                        mutation MessageGroups(
+                        mutation SetMessageGroups(
                           $simulatorId: ID!
                           $station: String!
                           $group: String!
@@ -450,7 +435,7 @@ const Station = ({stations, simulatorId, station: stationName}) => {
                         />
                       )}
                     </Mutation>{" "}
-                    {titleCase(group)}
+                    {capitalCase(group)}
                   </label>
                 </Col>
               ))}
@@ -512,7 +497,7 @@ const Station = ({stations, simulatorId, station: stationName}) => {
                         />
                       )}
                     </Mutation>{" "}
-                    {titleCase(widget)}
+                    {capitalCase(widget)}
                   </label>
                 </Col>
               ))}

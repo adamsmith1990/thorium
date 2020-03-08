@@ -256,6 +256,8 @@ class DamageControl extends Component {
         }),
       );
 
+    const selectedSystemObj = reportList.find(s => s.id === selectedSystem);
+
     return (
       <Container fluid className="damage-control">
         <Row>
@@ -350,7 +352,7 @@ class DamageControl extends Component {
                   defaultMessage="Reactivate"
                 />
               </Button>
-            ) : (
+            ) : system?.damage.report ? null : (
               <Mutation
                 mutation={gql`
                   mutation RequestReport($systemId: ID!) {
@@ -365,7 +367,9 @@ class DamageControl extends Component {
                   <Button
                     block
                     className="request-report"
-                    disabled={!selectedSystem || damagedSystem.damage.requested}
+                    disabled={
+                      !selectedSystemObj || damagedSystem.damage.requested
+                    }
                     onClick={action}
                     color="primary"
                   >
@@ -396,11 +400,19 @@ class DamageControl extends Component {
               damagedSystem.tasks) && (
               <Button
                 block
-                color="primary"
-                className={codeEntry ? "reactivate-button" : ""}
+                color={codeEntry ? "warning" : "primary"}
                 onClick={reactivationCodeModal ? () => {} : this.toggle}
               >
-                {codeEntry ? codeEntry : "Enter Reactivation Code..."}
+                {codeEntry ? (
+                  <span>
+                    <span className={codeEntry ? "reactivate-button" : ""}>
+                      {codeEntry}
+                    </span>
+                    {reactivationCodeModal ? "" : " - Reactivating"}
+                  </span>
+                ) : (
+                  "Enter Reactivation Code..."
+                )}
               </Button>
             )}
           </Col>

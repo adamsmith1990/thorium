@@ -5,6 +5,7 @@ export const InputField = ({
   promptValue,
   prompt: inputPrompt,
   alert,
+  onClick: propsOnClick,
   ...props
 }) => {
   const style = Object.assign(
@@ -25,9 +26,9 @@ export const InputField = ({
   }
   const onClick = () => {
     const value = prompt(inputPrompt, promptValue || children || "");
-    if (value === null) return props.onClick(null);
+    if (value === null) return; //props.onClick(null);
     const parseValue = isNaN(Number(value)) ? value : Number(value);
-    props.onClick(parseValue);
+    propsOnClick(parseValue);
   };
   return (
     <div className="input-field" {...props} onClick={onClick} style={style}>

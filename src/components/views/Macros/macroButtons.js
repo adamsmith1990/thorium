@@ -1,10 +1,10 @@
 import React from "react";
 import gql from "graphql-tag.macro";
 import {useSubscribeToMore} from "helpers/hooks/useQueryAndSubscribe";
-import {useQuery, useMutation} from "@apollo/react-hooks";
+import {useQuery, useMutation} from "@apollo/client";
 import {Input, Button} from "helpers/reactstrap";
 import useLocalStorage from "helpers/hooks/useLocalStorage";
-import {titleCase} from "change-case";
+import {capitalCase} from "change-case";
 
 const fragment = gql`
   fragment MacrosButtonsData on MacroButtonConfig {
@@ -101,7 +101,7 @@ const MacroButtons = ({simulator: {id: simulatorId}}) => {
         <div>
           {Object.entries(categories).map(([name, buttons]) => (
             <div>
-              <strong>{titleCase(name)}</strong>
+              <strong>{capitalCase(name)}</strong>
               <div style={{borderTop: "solid 1px rgba(255,255,255,0.5)"}}>
                 {buttons.map(b => (
                   <Button

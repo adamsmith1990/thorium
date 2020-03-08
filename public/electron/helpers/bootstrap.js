@@ -7,7 +7,11 @@ let restartCount = 0;
 module.exports = function bootstrap(serverWindow) {
   function startServer() {
     let port = settings.get("port") || 443;
-    let httpOnly = settings.get("httpOnly") === "true" || false;
+    let httpOnly =
+      settings.get("httpOnly") === "true" ||
+      settings.get("httpOnly") === true ||
+      false;
+
     const childPath = isProd
       ? "build/server/index.js"
       : "server/build/server/index.js";
@@ -22,16 +26,25 @@ module.exports = function bootstrap(serverWindow) {
           NODE_ENV: "production",
           ...process.env,
         },
+        // execArgv: [
+        //   "--nouse-idle-notification",
+        //   "--expose-gc",
+        //   "--max-new-space-size=2048",
+        //   "--max-old-space-size=8192",
+        // ],
         silent: true,
         maxBuffer: 1024 * 1024 * 1024,
       },
     );
 
     child.stdout.on("data", function(data) {
-      serverWindow.webContents.send("info", data);
+      const message = data.toString();
+      serverWindow.webContents.send("info", message);
     });
     child.stderr.on("data", function(data) {
-      serverWindow.webContents.send("info", data);
+      const error = data.toString();
+      if (error.includes("DeprecationWarning: Buffer()")) return;
+      serverWindow.webContents.send("info", error);
     });
     child.on("close", function(code) {
       if (serverWindow && restartCount < 10) {

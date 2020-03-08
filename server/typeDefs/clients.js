@@ -2,12 +2,13 @@ import App from "../app";
 import {gql, withFilter} from "apollo-server-express";
 import {pubsub} from "../helpers/subscriptionManager";
 import {StationResolver} from "../helpers/stationResolver";
+import uuid from "uuid";
 const mutationHelper = require("../helpers/mutationHelper").default;
 // We define a schema that encompasses all of the types
 // necessary for the functionality in this file.
 const schema = gql`
   type Client {
-    id: ID
+    id: ID!
     label: String
     connected: Boolean
     flight: Flight
@@ -108,7 +109,7 @@ const schema = gql`
       cards: [String]
     ): String
     clientDisconnect(client: ID!): String
-    clientPing(client: ID!, ping: String!): String
+    clientPing(client: ID!): String
     clientSetFlight(client: ID!, flightId: ID!): String
     clientSetSimulator(client: ID!, simulatorId: ID!): String
     clientSetStation(client: ID!, stationName: ID!): String
@@ -192,7 +193,14 @@ const schema = gql`
     handheldScannerResponse(id: ID!, response: String!): String
   }
   extend type Subscription {
-    clientChanged(client: ID, simulatorId: ID, flightId: ID): [Client]
+    clientChanged(
+      all: Boolean
+      clientId: ID
+      simulatorId: ID
+      stationName: String
+      flightId: ID
+    ): [Client]
+    clientPing(clientId: ID!): Boolean
     keypadsUpdate(simulatorId: ID!): [Keypad]
     keypadUpdate(client: ID!): Keypad
     scannersUpdate(simulatorId: ID!): [Scanner]
@@ -377,11 +385,11 @@ const resolver = {
   Mutation: mutationHelper(schema),
   Subscription: {
     clientChanged: {
-      resolve(data, {client, simulatorId, flightId}) {
+      resolve(data, {clientId, simulatorId, flightId}) {
         const payload = data.filter(c => c.connected);
         if (!payload) return [];
-        if (client) {
-          return payload.filter(c => c.id === client);
+        if (clientId) {
+          return payload.filter(c => c.id === clientId);
         }
         if (simulatorId) {
           return payload.filter(c => c.simulatorId === simulatorId);
@@ -392,11 +400,34 @@ const resolver = {
         return payload.filter(c => c.connected);
       },
       subscribe: withFilter(
-        () => pubsub.asyncIterator("clientChanged"),
-        (data, {client, simulatorId, flightId}) => {
+        (rootQuery, {clientId, stationName, all, simulatorId, flightId}) => {
+          const id = uuid.v4();
+
+          process.nextTick(() => {
+            let returnVal = App.clients;
+            if (clientId) {
+              returnVal = returnVal.filter(c => c.id === clientId);
+            }
+            if (simulatorId) {
+              returnVal = returnVal.filter(c => c.simulatorId === simulatorId);
+            }
+            if (stationName) {
+              returnVal = returnVal.filter(c => c.station === stationName);
+            }
+            if (flightId) {
+              returnVal = returnVal.filter(c => c.flightId === flightId);
+            }
+            pubsub.publish(
+              id,
+              returnVal.filter(c => (all ? true : c.connected)),
+            );
+          });
+          return pubsub.asyncIterator([id, "clientChanged"]);
+        },
+        (data, {clientId, simulatorId, flightId}) => {
           const payload = data.filter(c => c.connected);
-          if (client) {
-            return payload.filter(c => c.id === client).length > 0;
+          if (clientId) {
+            return payload.filter(c => c.id === clientId).length > 0;
           }
           if (simulatorId) {
             return (
@@ -407,6 +438,15 @@ const resolver = {
             return payload.filter(c => c.flightId === flightId).length > 0;
           }
           return true;
+        },
+      ),
+    },
+    clientPing: {
+      resolve: payload => true,
+      subscribe: withFilter(
+        () => pubsub.asyncIterator("clientPing"),
+        (rootValue, {clientId}) => {
+          return rootValue.id === clientId;
         },
       ),
     },

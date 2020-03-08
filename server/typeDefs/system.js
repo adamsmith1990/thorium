@@ -36,6 +36,7 @@ const schema = gql`
     upgradeMacros: [TimelineItem]
     upgradeBoard: ID
 
+    extra: Boolean
     damage: Damage
     power: Power
     stealthFactor: Float
@@ -132,7 +133,7 @@ const resolver = {
       }
       if (power) {
         returnSystems = returnSystems.filter(
-          s => s.power.power || s.power.power === 0,
+          s => s?.power?.power || s?.power?.power === 0,
         );
       }
       if (heat) {
@@ -167,7 +168,7 @@ const resolver = {
         }
         if (power) {
           returnSystems = returnSystems.filter(
-            s => s.power.power || s.power.power === 0,
+            s => s?.power?.power || s?.power?.power === 0,
           );
         }
         if (heat) {

@@ -1,9 +1,9 @@
-import React, {Fragment, Component} from "react";
+import React, {Component, Suspense} from "react";
 import {withApollo} from "react-apollo";
 import gql from "graphql-tag.macro";
 import {Cores} from "components/views";
 import categories from "./categories";
-import {titleCase} from "change-case";
+import {capitalCase} from "change-case";
 const fkeys = categories.reduce((prev, next, i) => {
   return Object.assign({}, prev, {[i + 112]: next.name});
 }, {});
@@ -105,7 +105,7 @@ class Hotkey extends Component {
   render() {
     const {showing, viewscreen, viewscreens} = this.state;
     return (
-      <Fragment>
+      <Suspense fallback={null}>
         <div
           className={`hotkey-core core viewscreen ${
             viewscreen ? "showing" : ""
@@ -117,7 +117,7 @@ class Hotkey extends Component {
               key={`viewscreen-${i}`}
             >
               <h3>
-                {key}: {titleCase(v.component || v)}
+                {key}: {capitalCase(v.component || v)}
               </h3>
               {v.component === "Video" && JSON.parse(v.data).asset}
             </div>
@@ -137,7 +137,7 @@ class Hotkey extends Component {
                   const Comp = Cores[c];
                   return (
                     <div className="hotkey-core-comp" style={{gridArea: c}}>
-                      <p>{titleCase(c)}</p>
+                      <p>{capitalCase(c)}</p>
                       <Comp {...this.props} />
                     </div>
                   );
@@ -145,7 +145,7 @@ class Hotkey extends Component {
             </div>
           )}
         </div>
-      </Fragment>
+      </Suspense>
     );
   }
 }

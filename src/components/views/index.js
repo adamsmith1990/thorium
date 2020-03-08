@@ -115,6 +115,7 @@ const CrmFighter = React.lazy(() => import("./CrmFighter"));
 const Records = React.lazy(() => import("./Records"));
 const StationControl = React.lazy(() => import("./StationControl"));
 const Environment = React.lazy(() => import("./Environment"));
+const Countermeasures = React.lazy(() => import("./Countermeasures"));
 
 // Cores
 const EngineControlCore = React.lazy(() => import("./EngineControl/core"));
@@ -156,7 +157,7 @@ const ReactivationCore = React.lazy(() =>
   import("./DamageControl/reactivationCore"),
 );
 const MessagingCore = React.lazy(() => import("./Messaging/core"));
-const LoginNameCore = React.lazy(() => import("./Clients/core"));
+const HypercardAndLoginNameCore = React.lazy(() => import("./Clients/core"));
 const JrNavigationCore = React.lazy(() => import("./JrFlight/navigationCore"));
 const ExtrasCore = React.lazy(() => import("./CoreExtras"));
 const SignalJammerCore = React.lazy(() => import("./SignalJammer/core"));
@@ -214,6 +215,7 @@ const OfficerLogCore = React.lazy(() => import("./OfficerLog/core"));
 const RecordsCore = React.lazy(() => import("./Records/core"));
 const MIDICore = React.lazy(() => import("./Midi"));
 //const EnvironmentCore = React.lazy(() => import("./Environment/core"));
+const CountermeasuresCore = React.lazy(() => import("./Countermeasures/core"));
 
 // Widgets
 const ComposerWidget = React.lazy(() => import("./LongRangeComm/Composer"));
@@ -318,6 +320,7 @@ const Views = {
   Records,
   StationControl,
   Environment,
+  Countermeasures,
 };
 
 export const Widgets = {
@@ -478,7 +481,7 @@ export const Cores = {
   ViewscreenCore,
   BattleCore,
   RailgunCore,
-  LoginNameCore,
+  HypercardAndLoginNameCore,
   JumpDriveCore,
   ClientsCore,
   BridgeMapCore,
@@ -507,6 +510,7 @@ export const Cores = {
   RecordsCore,
   MIDICore,
   //EnvironmentCore,
+  CountermeasuresCore,
 };
 
 export default Views;

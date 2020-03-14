@@ -6,6 +6,7 @@ import DamageTask from "./generic/damageTask";
 import {Station} from "./stationSet";
 import {lowerCase, camelCase} from "change-case";
 import {Record, RecordSnippet} from "./records";
+import LifeSupport from "./lifeSupport";
 class Ambiance {
   constructor(params = {}) {
     this.id = params.id || uuid.v4();
@@ -144,6 +145,8 @@ export default class Simulator {
     this.stationSet = params.stationSet || null;
     this.stations = [];
     this.exocomps = params.exocomps || 0;
+    this.lifeSupport = new LifeSupport(params.lifeSupport || {});
+    this.lifeSupport.simulatorId = this.id;
 
     // Mission Stuff
     this.mission = params.mission || null;
@@ -386,6 +389,9 @@ export default class Simulator {
   }
   setAssets(assets) {
     this.assets = new Assets(assets);
+  }
+  setLifeSupport(lifeSupport) {
+    this.lifeSupport = new Assets(lifeSupport);
   }
   setSoundEffects(effects) {
     this.soundEffects = new SoundEffects(effects);

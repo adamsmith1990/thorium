@@ -1,6 +1,6 @@
 import App from "../app";
-import {pubsub} from "../helpers/subscriptionManager";
-import uuid from "uuid";
+//import {pubsub} from "../helpers/subscriptionManager";
+//import uuid from "uuid";
 
 const EnvironmentProcess = () => {
   App.flights
@@ -30,20 +30,20 @@ const EnvironmentProcess = () => {
 
           oxygenConsumptionRate *= extraOxygenRatio;
 
-          if (currentAlert == 1) {
+          if (currentAlert === 1) {
             oxygenConsumptionRate *= 1.01;
           }
-          if (currentAlert == 2) {
+          if (currentAlert === 2) {
             oxygenConsumptionRate *= 1.006;
           }
-          if (currentAlert == 3) {
+          if (currentAlert === 3) {
             oxygenConsumptionRate *= 1.003;
           }
-          if (currentAlert == 4) {
+          if (currentAlert === 4) {
             oxygenConsumptionRate *= 1.001;
           }
 
-          let waterTank = App.lifesupport;
+          //let waterTank = App.lifesupport;
           //console.log(waterTank);
 
           //Get the decks on the active simulators
@@ -63,13 +63,13 @@ const EnvironmentProcess = () => {
               //Hydrogen
 
               let waterToWaste = d.environment.waterToWaste;
-              let filtration = d.environment.filtration;
-              let purification = d.environment.purification;
+              //let filtration = d.environment.filtration;
+              //let purification = d.environment.purification;
               let humidification = d.environment.humidification;
-              let electrolysis = d.environment.electrolysis;
+              //let electrolysis = d.environment.electrolysis;
               let oxygenInjector = d.environment.oxygenInjector;
               let nitrogenInjector = d.environment.nitrogenInjector;
-              let c02Scrubber = d.environment.c02Scrubber;
+              //let c02Scrubber = d.environment.c02Scrubber;
               let heater = d.environment.heater;
 
               d.environment.update({
@@ -107,6 +107,9 @@ const EnvironmentProcess = () => {
             });
         });
     });
+  App.simulators.forEach(s => {
+    console.log(s.lifeSupport.waterTank);
+  });
   setTimeout(EnvironmentProcess, 1000);
 };
 

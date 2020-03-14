@@ -43,17 +43,9 @@ const trainingSteps = [
 
 const fragments = {
   deckFragment: gql`
-    fragment DeckData on Deck {
+    fragment EnvironmentDeckData on Deck {
       id
       number
-      evac
-      doors
-      crewCount
-      rooms {
-        id
-        name
-        gas
-      }
       environment {
         oxygen
         nitrogen
@@ -68,7 +60,7 @@ const fragments = {
 export const DECK_SUB = gql`
   subscription DeckSubscribe($simulatorId: ID!) {
     decksUpdate(simulatorId: $simulatorId) {
-      ...DeckData
+      ...EnvironmentDeckData
     }
   }
   ${fragments.deckFragment}
@@ -253,7 +245,7 @@ class SecurityDecks extends Component {
 export const DECK_QUERY = gql`
   query SimulatorDecks($simulatorId: ID!) {
     decks(simulatorId: $simulatorId) {
-      ...DeckData
+      ...EnvironmentDeckData
     }
   }
   ${fragments.deckFragment}

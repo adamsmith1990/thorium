@@ -72,7 +72,7 @@ import transportersTypeDefs from "./transporters.js";
 import transwarpTypeDefs from "./transwarp.js";
 import triggerTypeDefs from "./trigger.js";
 import viewscreenTypeDefs from "./viewscreen.js";
-import lifeSupportTypeDefs from "./lifeSupport";
+import lifeSupportTypeDefs from "./lifeSupport.js";
 import countermeasuresTypeDefs from "./countermeasures";
 import universeTypeDefs from "./universe";
 export * from "./universe/components";

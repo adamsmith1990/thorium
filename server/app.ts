@@ -43,7 +43,7 @@ class Events extends EventEmitter {
   inventory: ClassesImport.InventoryItem[] = [];
   isochips: ClassesImport.Isochip[] = [];
   dockingPorts: ClassesImport.DockingPort[] = [];
-  //lifeSupport: ClassesImport.LifeSupport[] = [];
+  lifeSupport: ClassesImport.LifeSupport[] = [];
   coreLayouts: ClassesImport.CoreLayout[] = [];
   coreFeed: ClassesImport.CoreFeed[] = [];
   viewscreens: ClassesImport.Viewscreen[] = [];

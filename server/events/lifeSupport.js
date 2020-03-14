@@ -1,27 +1,31 @@
 import App from "../app";
 import {pubsub} from "../helpers/subscriptionManager";
-import * as Classes from "../classes";
+//import * as Classes from "../classes";
 
-App.on("createLifeSupport", ({life}) => {
+/*App.on("createLifeSupport", ({life}) => {
   const lifeSupport = new Classes.LifeSupport(life);
-  App.lifeSupports.push(lifeSupport);
-  pubsub.publish("lifeSupportUpdate", App.lifeSupports);
-});
+  App.lifeSupport.push(lifeSupport);
+  pubsub.publish("lifeSupportUpdate", allLifeSupports);
+});*/
 App.on("updateLifeSupport", ({life}) => {
-  const lifeSupport = App.lifeSupports.find(d => {
+  let allLifeSupports = [];
+  App.simulators.forEach(s => {
+    allLifeSupports.push(s.lifeSupport);
+  });
+  const lifeSupport = allLifeSupports.find(l => {
     if (life.id) {
-      return d.id === life.id;
+      return l.id === life.id;
     }
-    let tf = true;
     if (life.simulatorId) {
-      tf = life.simulatorId === d.simulatorId;
+      return l.simulartoId === life.simulartoId;
     }
-    return tf;
+    return null;
   });
   lifeSupport.updateLifeSupport(life);
-  pubsub.publish("lifeSupportUpdate", App.lifeSupports);
+  pubsub.publish("lifeSupportUpdate", allLifeSupports);
 });
-App.on("removeLifeSupport", ({life}) => {
-  App.lifeSupports = App.lifeSupports.filter(d => d.id !== life);
-  pubsub.publish("lifeSupportUpdate", App.lifeSupports);
-});
+/*App.on("removeLifeSupport", ({life}) => {
+
+  App.lifeSupport = App.lifeSupport.filter(d => d.id !== life);
+  pubsub.publish("lifeSupportUpdate", App.lifeSupport);
+});*/

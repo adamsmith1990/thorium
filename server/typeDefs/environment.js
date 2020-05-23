@@ -5,51 +5,47 @@ const mutationHelper = require("../helpers/mutationHelper").default;
 const schema = gql`
   type Environment {
     id: ID
-    oxygen: Float
-    nitrogen: Float
-    trace: Float
-    pressure: Float
-    temperature: Float
-    humidity: Float
-    gravity: Float
-    carbonDioxide: Float
-    water: Float
-    waste: Float
-    waterToWaste: Float
-    filtration: Float
-    purification: Float
-    humidification: Float
-    electrolysis: Float
-    oxygenInjector: Float
-    nitrogenInjector: Float
-    c02Scrubber: Float
-    heater: Float
+    atmOxygen: Float
+    atmNitrogen: Float
+    atmCarbonDioxide: Float
+    atmHumidity: Float
+    atmTemperature: Float
+    atmPressure: Float
+    atmOxygenRate: Float
+    atmNitrogenRate: Float
+    atmCarbonDioxideRate: Float
+    atmHumidityRate: Float
+    atmTemperatureRate: Float
+    atmPressureRate: Float
+    atmContamination: String
+    percentOxygen: Float
+    percentNitrogen: Float
+    percentCarbonDioxide: Float
   }
   input EnvironmentInput {
     id: ID
-    oxygen: Float
-    nitrogen: Float
-    trace: Float
-    pressure: Float
-    temperature: Float
-    humidity: Float
-    gravity: Float
-    carbonDioxide: Float
-    water: Float
-    waste: Float
-    waterToWaste: Float
-    filtration: Float
-    purification: Float
-    humidification: Float
-    electrolysis: Float
-    oxygenInjector: Float
-    nitrogenInjector: Float
-    c02Scrubber: Float
-    heater: Float
+    atmOxygen: Float
+    atmNitrogen: Float
+    atmCarbonDioxide: Float
+    atmHumidity: Float
+    atmTemperature: Float
+    atmPressure: Float
+    atmOxygenRate: Float
+    atmNitrogenRate: Float
+    atmCarbonDioxideRate: Float
+    atmHumidityRate: Float
+    atmTemperatureRate: Float
+    atmPressureRate: Float
+    atmContamination: String
+    percentOxygen: Float
+    percentNitrogen: Float
+    percentCarbonDioxide: Float
   }
 
   extend type Mutation {
     updateEnvironment(deckID: ID!, environment: EnvironmentInput): String
+    updateEnvironmentValues(deckID: ID!, which: String!, value: Float!): String
+    resetEnvironmentValues(deckID: ID!): String
   }
 `;
 

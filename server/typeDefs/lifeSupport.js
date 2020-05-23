@@ -14,6 +14,25 @@ const schema = gql`
     hydrogenTank: Float
     oxygenTank: Float
     nitrogenTank: Float
+    waterTankRate: Float
+    wasteTankRate: Float
+    hydrogenTankRate: Float
+    oxygenTankRate: Float
+    nitrogenTankRate: Float
+    oxygenTransfer: Float
+    oxygenDirection: String
+    nitrogenTransfer: Float
+    nitrogenDirection: String
+    electrolysis: Float
+    electrolysisDirection: String
+    humidifier: Float
+    humidifierDirection: String
+    heater: Float
+    heaterDirection: String
+    filter: Float
+    carbonDioxideScrubber: Float
+    cleanContaminant: String
+    activeDeck: ID
   }
 
   input LifeSupportInput {
@@ -24,6 +43,25 @@ const schema = gql`
     hydrogenTank: Float
     oxygenTank: Float
     nitrogenTank: Float
+    waterTankRate: Float
+    wasteTankRate: Float
+    hydrogenTankRate: Float
+    oxygenTankRate: Float
+    nitrogenTankRate: Float
+    oxygenTransfer: Float
+    oxygenDirection: String
+    nitrogenTransfer: Float
+    nitrogenDirection: String
+    electrolysis: Float
+    electrolysisDirection: String
+    humidifier: Float
+    humidifierDirection: String
+    heater: Float
+    heaterDirection: String
+    filter: Float
+    carbonDioxideScrubber: Float
+    cleanContaminant: String
+    activeDeck: ID
   }
 
   extend type Query {
@@ -31,9 +69,19 @@ const schema = gql`
   }
   extend type Mutation {
     updateLifeSupport(life: LifeSupportInput!): String
+    updateTankValues(simulatorId: ID!, which: String!, value: Float!): String
+    resetTankValues(simulatorId: ID!): String
+    """
+    Macro: Environment: Change Life Support Values
+    """
+    updateAnyLifeSupport(
+      simulatorId: ID!
+      which: String!
+      value: String!
+    ): String
   }
   extend type Subscription {
-    lifeSupportUpdate(id: ID, simulatorId: ID): [LifeSupport]
+    lifeSupportUpdate(simulatorId: ID!): [LifeSupport]
   }
 `;
 

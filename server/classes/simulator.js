@@ -145,8 +145,7 @@ export default class Simulator {
     this.stationSet = params.stationSet || null;
     this.stations = [];
     this.exocomps = params.exocomps || 0;
-    this.lifeSupport = new LifeSupport(params.lifeSupport || {});
-    this.lifeSupport.simulatorId = this.id;
+    this.lifeSupport = new LifeSupport(this.id);
 
     // Mission Stuff
     this.mission = params.mission || null;

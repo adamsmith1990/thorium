@@ -2961,6 +2961,11 @@ type Mutation {
   ): String
 
   """
+  Macro: Environment: Change Life Support Values
+  """
+  updateAnyLifeSupport(simulatorId: ID!, which: String!, value: String!): String
+
+  """
   Macro: Viewscreen: Remove Viewscreen Picture-in-Picture
   """
   removeViewscreenPictureInPicture(

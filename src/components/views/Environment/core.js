@@ -131,7 +131,7 @@ class EnvironmentDecks extends Component {
     const variables = {
       simulatorId: simulatorId,
       which: which,
-      value: value,
+      value: parseFloat(value),
     };
     const mutation = gql`
       mutation updateTankValues(
@@ -156,7 +156,7 @@ class EnvironmentDecks extends Component {
     const variables = {
       deckID: deckID,
       which: which,
-      value: value,
+      value: parseFloat(value),
     };
     const mutation = gql`
       mutation updateEnvironmentValues(
@@ -804,7 +804,7 @@ class EnvironmentDecks extends Component {
                 <button
                   onClick={value => {
                     this.updateEnvironmentValues(deck.id, "atmHumidity", 0.45);
-                    this.updateEnvironmentValues(deck.id, "atmOxygenRate", 0);
+                    this.updateEnvironmentValues(deck.id, "atmHumidityRate", 0);
                   }}
                 >
                   Reset

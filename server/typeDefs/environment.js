@@ -44,8 +44,11 @@ const schema = gql`
 
   extend type Mutation {
     updateEnvironment(deckID: ID!, environment: EnvironmentInput): String
-    updateEnvironmentValues(deckID: ID!, which: String!, value: Float!): String
     resetEnvironmentValues(deckID: ID!): String
+    """
+    Macro: Environment: Change Environment Values
+    """
+    updateEnvironmentValues(deckID: ID!, which: String!, value: Float!): String
   }
 `;
 

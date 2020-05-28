@@ -17,8 +17,9 @@ import {
   ClientsInterfacesAndKeyboardsQueryHookResult,
   Interface,
   useSetSoundPlayerMutation,
+  DmxSet,
 } from "generated/graphql";
-import {History} from "history";
+import {useNavigate, useParams} from "react-router-dom";
 
 const Keyboards = ({keyboards = []}: {keyboards: Keyboard[]}) => {
   if (keyboards.length === 0) {
@@ -26,10 +27,27 @@ const Keyboards = ({keyboards = []}: {keyboards: Keyboard[]}) => {
   }
   return (
     <Fragment>
-      <option disabled>──────────</option>
+      <hr />
       <optgroup label="Keyboards">
         {keyboards.map(k => (
           <option key={k?.id || "keyboard"} value={`keyboard:${k.id}`}>
+            {k.name}
+          </option>
+        ))}
+      </optgroup>
+    </Fragment>
+  );
+};
+const DMXSets = ({dmxSets = []}: {dmxSets: Pick<DmxSet, "id" | "name">[]}) => {
+  if (dmxSets.length === 0) {
+    return null;
+  }
+  return (
+    <Fragment>
+      <hr />
+      <optgroup label="Lighting">
+        {dmxSets.map(k => (
+          <option key={k?.id || "dmxSet"} value={`dmxSet:${k.id}`}>
             {k.name}
           </option>
         ))}
@@ -53,7 +71,7 @@ const Interfaces = ({
   }
   return (
     <Fragment>
-      <option disabled>──────────</option>
+      <hr />
       <optgroup label="Interfaces">
         {simInterfaces?.map(i => (
           <option key={i?.id || "interface"} value={`interface-id:${i?.id}`}>
@@ -72,6 +90,7 @@ interface ClientRowProps {
   flightId: string;
   interfaces: Interface[];
   keyboards: Keyboard[];
+  dmxSets: Pick<DmxSet, "id" | "name">[];
 }
 const ClientRow = ({
   client,
@@ -80,6 +99,7 @@ const ClientRow = ({
   flightId,
   interfaces,
   keyboards,
+  dmxSets,
 }: ClientRowProps) => {
   const [setClientFlight] = useSetClientFlightMutation();
   const [setClientSimulator] = useSetClientSimulatorMutation();
@@ -215,16 +235,13 @@ const ClientRow = ({
             )}
             {client.simulator && (
               <Fragment>
-                <option disabled>──────────</option>
+                <hr />
                 <option value={"Viewscreen"}>Viewscreen</option>
                 <option value={"Sound"}>Sound</option>
                 <option value={"Blackout"}>Blackout</option>
-                {(client.id.toLowerCase().indexOf("ecs") > -1 ||
-                  (client?.label?.toLowerCase().indexOf("ecs") || -1) > -1) && (
-                  <option value={"Lighting"}>Lighting</option>
-                )}
                 <Keyboards keyboards={keyboards} />
                 <Interfaces client={client} interfaces={interfaces} />
+                <DMXSets dmxSets={dmxSets} />
               </Fragment>
             )}
           </select>
@@ -249,106 +266,108 @@ const ClientRow = ({
   );
 };
 
-// const trainingSteps = [
-//   {
-//     selector: ".client-table",
-//     content: (
-//       <span>
-//         This is the client table. All currently connected clients appear here.
-//         Clients that are either unassigned or assigned to this flight appear at
-//         the top. Clients assigned to another flight appear at the bottom. Be
-//         careful not to change clients assigned to other flights. That might
-//         cause problems for whoever is using that client.
-//       </span>
-//     ),
-//   },
-//   {
-//     selector: ".remove-client",
-//     content: (
-//       <span>
-//         Click this button to remove a client. The client will always come back
-//         if it reconnects. To reconnect a client, just reopen the client or
-//         navigate the web browser to the client page.
-//       </span>
-//     ),
-//   },
-//   {
-//     selector: ".flight-picker",
-//     content: (
-//       <span>
-//         Choose the flight you want to assign this client to with this dropdown.
-//         If the flight only has one simulator, the simulator dropdown will
-//         automatically be filled.
-//       </span>
-//     ),
-//   },
-//   {
-//     selector: ".sim-picker",
-//     content: (
-//       <span>
-//         Choose the simulator you want to assign this client to with this
-//         dropdown.
-//       </span>
-//     ),
-//   },
-//   {
-//     selector: ".station-picker",
-//     content: (
-//       <span>
-//         Choose the station you want to assign this client to with this dropdown.
-//         It is populated with the stations in the current station set of the
-//         selected simulator. It also has some special stations:{" "}
-//         <ul>
-//           <li>
-//             <strong>Viewscreen</strong> creates a viewscreen for this simulator.
-//           </li>
-//           <li>
-//             <strong>Sound</strong> turns the station into a dedicated sound
-//             player.
-//           </li>
-//           <li>
-//             <strong>Blackout</strong> blacks out the station - useful for when
-//             you don't want a client to be used during a flight.
-//           </li>
-//           <li>
-//             <strong>Keyboards</strong> make the station's keyboard activate
-//             keyboard macros.
-//           </li>
-//         </ul>
-//       </span>
-//     ),
-//   },
-// ];
-
-const Clients = ({
-  match: {
-    params: {flightId},
+export const trainingSteps = [
+  {
+    selector: ".client-table",
+    content: (
+      <span>
+        This is the client table. All currently connected clients appear here.
+        Clients that are either unassigned or assigned to this flight appear at
+        the top. Clients assigned to another flight appear at the bottom. Be
+        careful not to change clients assigned to other flights. That might
+        cause problems for whoever is using that client.
+      </span>
+    ),
   },
-  history,
-}: {
-  match: {params: {flightId: string}};
-  history: History;
-}) => {
+  {
+    selector: ".remove-client",
+    content: (
+      <span>
+        Click this button to remove a client. The client will always come back
+        if it reconnects. To reconnect a client, just reopen the client or
+        navigate the web browser to the client page.
+      </span>
+    ),
+  },
+  {
+    selector: ".flight-picker",
+    content: (
+      <span>
+        Choose the flight you want to assign this client to with this dropdown.
+        If the flight only has one simulator, the simulator dropdown will
+        automatically be filled.
+      </span>
+    ),
+  },
+  {
+    selector: ".sim-picker",
+    content: (
+      <span>
+        Choose the simulator you want to assign this client to with this
+        dropdown.
+      </span>
+    ),
+  },
+  {
+    selector: ".station-picker",
+    content: (
+      <span>
+        Choose the station you want to assign this client to with this dropdown.
+        It is populated with the stations in the current station set of the
+        selected simulator. It also has some special stations:{" "}
+        <ul>
+          <li>
+            <strong>Viewscreen</strong> creates a viewscreen for this simulator.
+          </li>
+          <li>
+            <strong>Sound</strong> turns the station into a dedicated sound
+            player.
+          </li>
+          <li>
+            <strong>Blackout</strong> blacks out the station - useful for when
+            you don't want a client to be used during a flight.
+          </li>
+          <li>
+            <strong>Keyboards</strong> make the station's keyboard activate
+            keyboard macros.
+          </li>
+        </ul>
+      </span>
+    ),
+  },
+];
+
+const Clients = () => {
+  const navigate = useNavigate();
+  const {flightId} = useParams();
   const {data, loading} = useClientChangedSubscription();
   const {
     data: flightsData,
     loading: flightsLoading,
   } = useFlightsSubSubscription();
   const {
-    data: keyboardInterfaceData = {keyboard: [], interfaces: []},
+    data: keyboardInterfaceData = {keyboard: [], interfaces: [], dmxSets: []},
     loading: keyboardLoading,
   }: ClientsInterfacesAndKeyboardsQueryHookResult = useClientsInterfacesAndKeyboardsQuery();
 
   const clients = (data?.clientChanged || []) as Client[];
   const flights = (flightsData?.flightsUpdate || []) as Flight[];
-  const {keyboard, interfaces} = keyboardInterfaceData as {
+  const {keyboard, interfaces, dmxSets} = keyboardInterfaceData as {
     keyboard: Keyboard[];
     interfaces: Interface[];
+    dmxSets: DmxSet[];
   };
-  if (loading || flightsLoading || !data || !flightsData || keyboardLoading)
+  if (
+    !flightId ||
+    loading ||
+    flightsLoading ||
+    !data ||
+    !flightsData ||
+    keyboardLoading
+  )
     return null;
   if (flights.map(f => f?.id).indexOf(flightId) === -1) {
-    history.push("/");
+    navigate("/");
     return null;
   }
   return (
@@ -389,6 +408,7 @@ const Clients = ({
                           flights={flights}
                           interfaces={interfaces}
                           keyboards={keyboard}
+                          dmxSets={dmxSets}
                         />
                       ),
                   )}
@@ -414,6 +434,7 @@ const Clients = ({
                           flights={flights}
                           interfaces={interfaces}
                           keyboards={keyboard}
+                          dmxSets={dmxSets}
                         />
                       ),
                   )}

@@ -6,7 +6,7 @@ const settings = require("electron-settings");
 let restartCount = 0;
 module.exports = function bootstrap(serverWindow) {
   function startServer() {
-    let port = settings.get("port") || 443;
+    let port = settings.get("port") || 4444;
     let httpOnly =
       settings.get("httpOnly") === "true" ||
       settings.get("httpOnly") === true ||
@@ -37,16 +37,16 @@ module.exports = function bootstrap(serverWindow) {
       },
     );
 
-    child.stdout.on("data", function(data) {
+    child.stdout.on("data", function (data) {
       const message = data.toString();
       serverWindow.webContents.send("info", message);
     });
-    child.stderr.on("data", function(data) {
+    child.stderr.on("data", function (data) {
       const error = data.toString();
       if (error.includes("DeprecationWarning: Buffer()")) return;
       serverWindow.webContents.send("info", error);
     });
-    child.on("close", function(code) {
+    child.on("close", function (code) {
       if (serverWindow && restartCount < 10) {
         try {
           serverWindow.webContents.send(
@@ -68,12 +68,12 @@ module.exports = function bootstrap(serverWindow) {
       }
       restartCount++;
     });
-    child.on("error", function(err) {
+    child.on("error", function (err) {
       serverWindow.webContents.send(
         "info",
         `Error in server process: ${err.message}`,
       );
-      console.log(err);
+      console.error(err);
     });
 
     app.on("before-quit", () => {

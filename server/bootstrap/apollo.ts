@@ -18,10 +18,9 @@ import App from "../app";
 // Load some other stuff
 import "../events";
 import "../processes";
-import {FieldNode, getOperationRootType} from "graphql";
+import {FieldNode, getOperationRootType, printSchema} from "graphql";
 import {getArgumentValues} from "graphql/execution/values";
 import {getFieldDef} from "graphql/execution/execute";
-import {pubsub} from "../helpers/subscriptionManager";
 
 export const schema = makeExecutableSchema({
   typeDefs,
@@ -30,6 +29,13 @@ export const schema = makeExecutableSchema({
     requireResolversForResolveType: false,
   },
 });
+if (process.env.NODE_ENV === "development" && !process.env.CI) {
+  // Automatically generate the GraphQL schema and write it to file
+  // but only in development.
+  const schemaOutput = printSchema(schema);
+
+  fs.writeFileSync("./src/schema.graphql", schemaOutput);
+}
 
 // TODO: Change app to the express type
 function responseForOperation(requestContext) {
@@ -78,6 +84,7 @@ function responseForOperation(requestContext) {
     flight: flight || context.flight,
     simulator: simulator || context.simulator,
     client,
+    isMutation: true,
   };
 
   // If there is a direct mutation resolver, execute that.
@@ -119,7 +126,10 @@ export default (
   app: express.Application,
   SERVER_PORT: number,
   httpOnly: boolean,
+  setMutations: (r: {[key: string]: Function}) => void,
 ) => {
+  // Apply the mutations to App.js so we don't get circular dependency issues
+  setMutations(resolvers.Mutation);
   const graphqlOptions: ApolloServerExpressConfig = {
     schema,
     engine: {
@@ -134,28 +144,6 @@ export default (
         requestDidStart() {
           return {
             responseForOperation,
-            parsingDidStart(requestContext) {
-              requestContext.context.subscriptionResponses = {};
-            },
-            willSendResponse(requestContext) {
-              if (requestContext.operation.operation === "mutation") {
-                // If we have any patch subscriptions, send them at the end of the entire operation.
-                const {context} = requestContext;
-                if (context.subscriptionResponses) {
-                  Object.entries(context.subscriptionResponses).forEach(
-                    ([key, value]) => {
-                      if (Array.isArray(value)) {
-                        value.forEach(v => {
-                          pubsub.publish(key, v);
-                        });
-                      } else {
-                        pubsub.publish(key, value);
-                      }
-                    },
-                  );
-                }
-              }
-            },
           };
         },
       },
@@ -219,25 +207,25 @@ Access the Flight Director on ${printUrl()}
 GraphQL Server running on ${printUrl()}/graphql
 🚀 Subscriptions ready at ${printUrl({isWs: true})}${apollo.subscriptionsPath}`;
 
-  process.on("uncaughtException", function(err) {
+  process.on("uncaughtException", function (err) {
     // String key because typescript is funky
     if (err["code"] === "EADDRINUSE") {
-      console.log(
+      console.error(
         chalk.redBright(
           "There is already a version of Thorium running on this computer. Changing port to 4444",
         ),
       );
       // Fallover to 4444 if someone is already using the specified ports on this computer
       httpServer.listen(4444, () => {
-        console.log(serverMessage);
+        console.info(serverMessage);
       });
     }
   });
   try {
     httpServer.listen(SERVER_PORT, () => {
-      console.log(serverMessage);
+      console.info(serverMessage);
     });
   } catch (err) {
-    console.log("That didnt work...", err);
+    console.error("That didnt work...", err);
   }
 };

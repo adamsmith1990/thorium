@@ -1,4 +1,6 @@
 import uuid from "uuid";
+import App from "../app";
+import {pascalCase} from "change-case";
 
 export class StationSet {
   id: string;
@@ -7,7 +9,13 @@ export class StationSet {
   simulatorId: string;
   crewCount: number;
   stations: Station[];
-  constructor({id, name, simulatorId, crewCount, stations = []}: StationSet) {
+  constructor({
+    id,
+    name,
+    simulatorId,
+    crewCount,
+    stations = [],
+  }: Partial<StationSet>) {
     this.class = "StationSet";
     this.id = id || uuid.v4();
     this.simulatorId = simulatorId || null;
@@ -18,10 +26,21 @@ export class StationSet {
       this.addStation(station);
     });
   }
+  static exportable = "stationSets";
+  serialize({addData}) {
+    const filename = `${this.name}.stationSet`;
+    const data = {...this};
+    addData("stationSets", data);
+    return filename;
+  }
+  static import(data: StationSet) {
+    const stationSet = new StationSet({...data, id: null});
+    App.stationSets.push(stationSet);
+  }
   rename(name: string) {
     this.name = name;
   }
-  addStation(station: Station) {
+  addStation(station: Partial<Station>) {
     this.stations.push(new Station(station));
   }
   removeStation(stationName: string) {
@@ -68,6 +87,9 @@ export class StationSet {
   setTraining(station: string, training: string) {
     this.stations.find(s => s.name === station).setTraining(training);
   }
+  setTags(station: string, tags: string[]) {
+    this.stations.find(s => s.name === station).setTags(tags);
+  }
   setAmbiance(station: string, ambiance: string) {
     this.stations.find(s => s.name === station).setAmbiance(ambiance);
   }
@@ -85,6 +107,7 @@ export class Station {
   messageGroups: string[];
   widgets: string[];
   description: string;
+  tags: string[];
   training: string;
   ambiance: string;
   layout: string;
@@ -96,13 +119,15 @@ export class Station {
     messageGroups = [],
     widgets = [],
     description,
+    tags,
     training,
     ambiance,
     layout,
-  }: Station) {
+  }: Partial<Station>) {
     this.class = "Station";
     this.name = name || "Station";
     this.description = description || "";
+    this.tags = tags || [];
     this.training = training || "";
     this.ambiance = ambiance || "";
     this.login = login;
@@ -115,6 +140,16 @@ export class Station {
       this.addCard(card);
     });
   }
+  matchTags(tags: string[]) {
+    const components = this.cards.map(t => t.component);
+    for (let t of tags) {
+      if (this.tags.includes(t)) return true;
+      if (this.name === t || pascalCase(this.name) === pascalCase(t))
+        return true;
+      if (components.includes(pascalCase(t))) return true;
+    }
+    return false;
+  }
   rename(name: string) {
     this.name = name;
   }
@@ -124,16 +159,19 @@ export class Station {
   setTraining(training: string) {
     this.training = training;
   }
+  setTags(tags: string[]) {
+    this.tags = tags.map(t => t.trim());
+  }
   setAmbiance(ambiance: string) {
     this.ambiance = ambiance;
   }
-  addCard(card: Card) {
+  addCard(card: Partial<Card>) {
     this.cards.push(new Card(card));
   }
   removeCard(cardName: string) {
     this.cards = this.cards.filter((c: Card) => c.name !== cardName);
   }
-  updateCard(cardName: string, cardUpdate: Card) {
+  updateCard(cardName: string, cardUpdate: Partial<Card>) {
     const card = this.cards.find((c: Card) => c.name === cardName);
     card.update(cardUpdate);
   }
@@ -178,21 +216,23 @@ export class Station {
     this.widgets = move(this.widgets, this.widgets.indexOf(widget), order);
   }
 }
-
 export class Card {
   name: string;
   icon: string | null;
   component: string;
-  class: string;
+  class: "Card" = "Card";
   hidden: boolean;
-  constructor(params: Card) {
+  newStation?: boolean;
+  assigned?: boolean;
+  constructor(params: Partial<Card>) {
     this.name = params.name || "Card";
     this.icon = params.icon || null;
     this.component = params.component || "Login";
-    this.class = "Card";
     this.hidden = false;
+    this.newStation = params.newStation || false;
+    this.assigned = params.assigned || false;
   }
-  update({name, icon, component}: Card) {
+  update({name, icon, component}: Partial<Card>) {
     if (name) this.name = name;
     if (icon) this.icon = icon;
     if (component) this.component = component;

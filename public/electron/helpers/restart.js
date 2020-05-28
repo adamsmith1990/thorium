@@ -1,7 +1,6 @@
-"use strict";
 var cp = require("child_process");
 
-module.exports = function(cb) {
+module.exports = function (cb) {
   if (
     process.platform !== "linux" &&
     process.platform !== "darwin" &&
@@ -20,7 +19,7 @@ module.exports = function(cb) {
     cmd = cmd + " -f";
   }
 
-  cp.exec(cmd, function(err, stdout, stderr) {
+  cp.exec(cmd, function (err, stdout, stderr) {
     cb(err, stdout, stderr);
   });
 };

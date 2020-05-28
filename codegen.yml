@@ -7,7 +7,7 @@ generates:
       - "typescript"
       - "typescript-operations"
       - "fragment-matcher"
-      - "typescript-react-apollo"
+      - "./scripts/apollo-codegen.js"
     config:
       scalars:
         DateTime: Date
@@ -17,3 +17,8 @@ generates:
       withComponent: false
       withHooks: true
       reactApolloVersion: 3
+      skipTypename: false
+      withMutationFn: false
+      withResultType: false
+      withMutationOptionsType: false
+      addDocBlocks: false

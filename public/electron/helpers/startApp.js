@@ -2,9 +2,9 @@ const {app, BrowserWindow, ipcMain, shell} = require("electron");
 const ipAddress = require("./ipaddress");
 const fs = require("fs");
 const path = require("path");
-const semver = require("semver");
-const os = require("os");
 const autoUpdateInit = require("./autoUpdate");
+const usbDetect = require("usb-detection");
+const dmx = require("./dmx");
 
 // Make the kiosk work better on slightly older computers
 app.commandLine.appendSwitch("ignore-gpu-blacklist", "true");
@@ -28,11 +28,8 @@ module.exports = () => {
     addWindow({server: true});
   }
   app.enableSandbox();
-  app.on("ready", function() {
-    let port =
-      process.env.PORT ||
-      settings.get("port") ||
-      (semver.parse(os.release()).major >= 18 ? 443 : 4444);
+  app.on("ready", function () {
+    let port = process.env.PORT || settings.get("port") || 4444;
     let httpOnly =
       process.env.HTTP_ONLY === "true" ||
       settings.get("httpOnly") === "true" ||
@@ -58,13 +55,13 @@ module.exports = () => {
         return b.isVisible();
       }).length;
     });
-    ipcMain.on("loadPage", function(evt, data) {
+    ipcMain.on("loadPage", function (evt, data) {
       const {url: loadUrl, auto, kiosk} = data;
       if (auto) {
         settings.set("autostart", loadUrl);
       }
       require("./loadPage")(loadUrl, kiosk).catch(err => {
-        console.log(err);
+        console.error(err);
         settings.set("autostart", null);
         bonjour.start();
       });
@@ -81,7 +78,7 @@ module.exports = () => {
       app.exit(0);
       return;
     });
-    ipcMain.on("startServer", function(evt, auto) {
+    ipcMain.on("startServer", function (evt, auto) {
       startServer();
     });
 
@@ -90,6 +87,15 @@ module.exports = () => {
     });
     ipcMain.handle("get-ipAddress", async () => {
       return ipAddress;
+    });
+    ipcMain.handle("get-usbDevices", async () => {
+      return usbDetect.find(0x403, 0x6001);
+    });
+    ipcMain.on("activate-dmx", (event, config) => {
+      dmx.activate(config);
+    });
+    ipcMain.on("send-dmx-value", (event, universe) => {
+      dmx.sendData(universe);
     });
     ipcMain.handle("get-hostname", async () => {
       return require("os").hostname();
@@ -121,7 +127,7 @@ module.exports = () => {
       bonjour.start();
     }
     require("./setMenubar").setMenubar();
-    app.on("window-all-closed", function() {
+    app.on("window-all-closed", function () {
       // On OS X it is common for applications and their menu bar
       // to stay active until the user quits explicitly with Cmd + Q
       app.quit();

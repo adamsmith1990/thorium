@@ -2,7 +2,8 @@ import {gql} from "apollo-server-express";
 import App from "../../../app";
 import produce from "immer";
 import {Location} from "../../../classes/universe/components";
-import {handlePatches} from "../../../helpers/filterPatches";
+import {setComponent} from "../setComponentHelper";
+import {pubsub} from "../../../helpers/subscriptionManager";
 
 const schema = gql`
   type Quaternion {
@@ -18,16 +19,17 @@ const schema = gql`
     w: Float!
   }
   type EntityCoordinates {
-    x: BigInt!
-    y: BigInt!
-    z: BigInt!
+    x: Float!
+    y: Float!
+    z: Float!
   }
   input EntityCoordinatesInput {
-    x: BigInt!
-    y: BigInt!
-    z: BigInt!
+    x: Float!
+    y: Float!
+    z: Float!
   }
   type LocationComponent {
+    inert: Boolean!
     position: EntityCoordinates!
     velocity: EntityCoordinates!
     acceleration: EntityCoordinates!
@@ -54,53 +56,67 @@ const schema = gql`
       rotationAcceleration: EntityCoordinatesInput
     ): String
     entitiesSetPosition(entities: [EntitiesLocationInput!]!): String
+    entitySetRotationVelocityMagnitude(
+      id: ID!
+      rotationVelocity: CoordinatesInput!
+    ): String
+    # entitySetVelocityMagnitude(id: ID!, velocity: CoordinatesInput!): String
     entityRemoveLocation(id: ID!): String
   }
 `;
 
 const resolver = {
   Mutation: {
-    entitySetLocation(root, {id, ...properties}, context) {
-      const entityId = id || context.entityId;
-      const entityIndex = App.entities.findIndex(e => e.id === entityId);
-      const flightId = App.entities[entityIndex].flightId;
-      App.entities = produce(
-        App.entities,
-        draft => {
-          const entity = draft[entityIndex];
-          if (!entity.location) {
-            entity.location = new Location({...properties});
-          } else {
-            Object.entries(properties).forEach(([key, value]) => {
-              entity.location[key] = value;
-            });
-          }
-        },
-
-        handlePatches(context, "entities", flightId, "flightId", "entity"),
-      );
-    },
+    entitySetLocation: setComponent("location"),
     entitiesSetPosition(root, {entities}, context) {
       const entity = App.entities.find(e => e.id === entities[0].id);
       const flightId = entity?.flightId;
       if (!flightId) return;
-      App.entities = produce(
-        App.entities,
-        draft => {
-          entities.forEach(e => {
-            const entityIndex = draft.findIndex(ee => ee.id === e.id);
-            const entity = draft[entityIndex];
-            if (!entity.location) {
-              entity.location = new Location({position: e.position});
-            } else {
-              entity.location.position = e.position;
-            }
-          });
-        },
 
-        handlePatches(context, "entities", flightId, "flightId", "entity"),
-      );
+      App.entities = produce(App.entities, draft => {
+        entities.forEach(e => {
+          const entityIndex = draft.findIndex(ee => ee.id === e.id);
+          const entity = draft[entityIndex];
+          if (!entity.location) {
+            entity.location = new Location({position: e.position});
+          } else {
+            entity.location.position = e.position;
+          }
+        });
+      });
+
+      pubsub.publish("entities", {
+        flightId,
+        template: false,
+        entities: App.entities,
+      });
     },
+    entitySetRotationVelocityMagnitude(root, {id, rotationVelocity}) {
+      const entityIndex = App.entities.findIndex(e => e.id === id);
+      if (entityIndex === -1) return;
+
+      const entity = App.entities[entityIndex];
+      const flightId = entity?.flightId;
+      if (!flightId) return;
+
+      entity.location.rotationVelocity.x = rotationVelocity.x;
+      entity.location.rotationVelocity.y = rotationVelocity.y;
+      entity.location.rotationVelocity.z = rotationVelocity.z;
+      // No need to publish
+    },
+    // entitySetAccelerationMagnitude(root, {id, velocity}) {
+    //   const entityIndex = App.entities.findIndex(e => e.id === id);
+    //   if (entityIndex === -1) return;
+
+    //   const entity = App.entities[entityIndex];
+    //   const flightId = entity?.flightId;
+    //   if (!flightId) return;
+
+    //   entity.location.velocity.x = velocity.x;
+    //   entity.location.velocity.y = velocity.y;
+    //   entity.location.velocity.z = velocity.z;
+    //   // No need to publish
+    // },
     entityRemoveLocation(root, {id}, context) {
       const entityId = id || context.entityId;
     },

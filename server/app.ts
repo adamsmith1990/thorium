@@ -7,6 +7,9 @@ import Store from "./helpers/data-store";
 import heap from "./helpers/heap";
 import handleTrigger from "./helpers/handleTrigger";
 import Motu from "motu-control";
+import {setAutoFreeze} from "immer";
+
+setAutoFreeze(false);
 
 const Classes: {[index: string]: any} = {
   ...ClassesImport,
@@ -43,7 +46,6 @@ class Events extends EventEmitter {
   inventory: ClassesImport.InventoryItem[] = [];
   isochips: ClassesImport.Isochip[] = [];
   dockingPorts: ClassesImport.DockingPort[] = [];
-  lifeSupport: ClassesImport.LifeSupport[] = [];
   coreLayouts: ClassesImport.CoreLayout[] = [];
   coreFeed: ClassesImport.CoreFeed[] = [];
   viewscreens: ClassesImport.Viewscreen[] = [];
@@ -60,6 +62,7 @@ class Events extends EventEmitter {
   taskTemplates: ClassesImport.TaskTemplate[] = [];
   taskReports: ClassesImport.TaskReport[] = [];
   tasks: ClassesImport.Task[] = [];
+  taskFlows: ClassesImport.TaskFlow[] = [];
   commandLine: ClassesImport.CommandLine[] = [];
   triggerGroups: ClassesImport.Trigger[] = [];
   interfaces: ClassesImport.Interface[] = [];
@@ -70,6 +73,10 @@ class Events extends EventEmitter {
   midiSets: ClassesImport.MidiSet[] = [];
   entities: ClassesImport.Entity[] = [];
   motus: Motu[] = [];
+  dmxDevices: ClassesImport.DMXDevice[] = [];
+  dmxFixtures: ClassesImport.DMXFixture[] = [];
+  dmxConfigs: ClassesImport.DMXConfig[] = [];
+  dmxSets: ClassesImport.DMXSet[] = [];
   autoUpdate = true;
   migrations: any = {assets: true};
   thoriumId: string = randomWords(5).join("-");
@@ -79,9 +86,10 @@ class Events extends EventEmitter {
   spaceEdventuresToken?: string = null;
   googleSheetsTokens: any = {};
   httpOnly: boolean = false;
-  port: number = process.env.NODE_ENV === "production" ? 443 : 3001;
+  port: number = process.env.NODE_ENV === "production" ? 4444 : 3001;
 
   events: any[] = [];
+  mutations: {[key: string]: Function} = {};
   replaying = false;
   snapshotVersion = 0;
   version = 0;
@@ -94,7 +102,7 @@ class Events extends EventEmitter {
     heap.track("thorium-started", this.thoriumId);
     if (process.env.PORT && !isNaN(parseInt(process.env.PORT, 10)))
       this.port = parseInt(process.env.PORT, 10);
-    if (process.env.HTTP_ONLY === "true") this.httpOnly = true;
+    this.httpOnly = process.env.HTTP_ONLY === "true";
   }
   merge(snapshot: any) {
     // Initialize the snapshot with the object constructors
@@ -104,6 +112,7 @@ class Events extends EventEmitter {
         key === "snapshotVersion" ||
         key === "timestamp" ||
         key === "version" ||
+        key === "mutations" ||
         key === "_eventsCount"
       ) {
         return;
@@ -150,8 +159,8 @@ class Events extends EventEmitter {
             try {
               this[key].push(new Classes[obj.class](obj));
             } catch (err) {
-              console.log(err);
-              console.log({
+              console.error(err);
+              console.error({
                 message: "Undefined key in class",
                 key,
                 class: obj.class,
@@ -183,31 +192,32 @@ class Events extends EventEmitter {
     const newMotus = motus.map(m => m.address);
     return {...snapshot, flights: newFlights, motus: newMotus};
   }
+  setMutations = (resolvers: {[key: string]: Function}) => {
+    this.mutations = resolvers;
+  };
   // TODO: Add a proper context type
-  handleEvent(
-    param: any,
-    eventName: string,
-    context?: any,
-    action?: (a, b, c) => any,
-  ) {
+  handleEvent(param: any, eventName: string, context?: any) {
     this.timestamp = new Date();
     this.version = this.version + 1;
     context = context || {};
     handleTrigger(eventName, param, context);
     heap.track(eventName, this.thoriumId, param, context);
-    // If params has isMacro, then we'll want to execute the mutation resolver
-    // It should have been passed by the 'triggerMacro' mutation
-    if (param.isMacro) {
-      action?.({}, param, context);
-    }
-    this.emit(eventName, {...param, context});
     process.env.NODE_ENV === "production" && this.snapshot();
+
+    // If this is not a mutation but there isn't an event handler
+    // we'll need to call the appropriate mutation resolver
+    // for things like macros and internal calls to events
+    if (!context.isMutation && !Object.keys(this._events).includes(eventName)) {
+      this.mutations[eventName]?.({}, param, context);
+    } else {
+      this.emit(eventName, {cb: () => {}, ...param, context});
+    }
   }
   test(param: any) {
     if (param.key) {
-      console.log(util.inspect(this[param.key], false, null));
+      console.info(util.inspect(this[param.key], false, null));
     } else {
-      console.log(util.inspect(this, false, null));
+      console.info(util.inspect(this, false, null));
     }
   }
 }
@@ -215,8 +225,8 @@ class Events extends EventEmitter {
 const App = new Events();
 
 // Handle events for App
-App.on("error", function(err) {
-  console.log("here's an error!");
+App.on("error", function (err) {
+  console.error("here's an error!");
   console.error(err);
 });
 

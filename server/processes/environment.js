@@ -194,7 +194,6 @@ const EnvironmentProcess = () => {
               } else {
                 activeRate = 0;
               }
-              //activeRate = 1;
 
               const atmOxygen = environment.atmOxygen;
               const atmNitrogen = environment.atmNitrogen;
@@ -515,4 +514,3 @@ const triggerWarning = sys => {
 };
 
 EnvironmentProcess();
-//EnvironmentWarning();

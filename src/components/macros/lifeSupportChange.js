@@ -1,62 +1,44 @@
-import React from "react";
+/*import React from "react";
 import {FormGroup, Label, Input} from "helpers/reactstrap";
 
-const systems = [
-  "LongRangeComm",
-  "InternalComm",
-  "Engine",
-  "Thrusters",
-  "Navigation",
-  "Sensors",
-  "Probes",
-  "TractorBeam",
-  "Transporters",
-  "Reactor",
-  "StealthField",
-  "Shield",
-  "Targeting",
-  "Phasers",
-  "Coolant",
-  "Torpedo",
-  "ShortRangeComm",
-  "SignalJammer",
-  "ComputerCore",
-  "Thx",
-  "Sickbay",
-  "JumpDrive",
-  "Railgun",
-  "SubspaceField",
-  "Transwarp",
-];
-
-export default ({updateArgs, args, client}) => {
+export default ({updateArgs, args: {objective = {}}}) => {
   return (
-    <FormGroup className="macro-addShortRangeComm">
-      <p>
-        Break a system based on the system type. If there are more than one of a
-        type, you must specify the exact name of the system. Otherwise, it will
-        break a random working system of that type.
-      </p>
-      <Label>System Type</Label>
-      <Input
-        type="select"
-        value={args ? args.type : "select"}
-        onChange={evt => updateArgs("type", evt.target.value)}
-      >
-        <option value={"select"}>Pick a Type</option>
-        {systems.map(s => (
-          <option key={s} value={s}>
-            {s}
-          </option>
-        ))}
-      </Input>
-      <Label>Name</Label>
+    <FormGroup className="macro-lifeSupportChange">
+      <Label>Title</Label>
       <Input
         type="text"
-        placeholder="Optional"
-        defaultValue={args ? args.name : ""}
-        onBlur={evt => updateArgs("name", evt.target.value)}
+        defaultValue={objective.title}
+        onBlur={evt =>
+          updateArgs(
+            "objective",
+            Object.assign({}, objective, {title: evt.target.value}),
+          )
+        }
+      />
+      <Label>Description</Label>
+      <Input
+        type="text"
+        defaultValue={objective.description}
+        onBlur={evt =>
+          updateArgs(
+            "objective",
+            Object.assign({}, objective, {description: evt.target.value}),
+          )
+        }
+      />
+      <Label>Allow Crew Check Off</Label>
+      <Input
+        style={{marginLeft: "20px"}}
+        type="checkbox"
+        defaultChecked={objective.crewComplete}
+        onChange={evt =>
+          updateArgs(
+            "objective",
+            Object.assign({}, objective, {crewComplete: evt.target.checked}),
+          )
+        }
       />
     </FormGroup>
   );
 };
+*/

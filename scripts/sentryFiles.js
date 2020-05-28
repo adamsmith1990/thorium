@@ -18,7 +18,11 @@ function getFiles() {
     path: `build/static/js/${f}`,
   }));
 }
-console.log("Uploading files to Sentry.io...");
-upload(config)
-  .then(data => console.log("----- SUCCESS ----\n", data))
-  .catch(error => console.log("---- ERROR ----\n", error));
+if (!process.env.ERROR_REPORTING_ORGANIZATION) {
+  console.info("No Sentry.io Org Field. Skipping...");
+} else {
+  console.info("Uploading files to Sentry.io...");
+  upload(config)
+    .then(data => console.info("----- SUCCESS ----\n", data))
+    .catch(error => console.info("---- ERROR ----\n", error));
+}

@@ -36,7 +36,7 @@ const fragments = {
     }
   `,
   lifeSupportFragment: gql`
-    fragment LifeSupportData on LifeSupport {
+    fragment LifeSupportPanelData on LifeSupport {
       id
       simulatorId
       waterTank
@@ -79,7 +79,7 @@ export const DECK_SUB = gql`
 export const LIFESUPPORT_SUB = gql`
   subscription DeckSubscribe($simulatorId: ID!) {
     lifeSupportUpdate(simulatorId: $simulatorId) {
-      ...LifeSupportData
+      ...LifeSupportPanelData
     }
   }
   ${fragments.lifeSupportFragment}
@@ -168,7 +168,6 @@ class EnvironmentPanel extends Component {
     const heater = lifeSupport.heater;
     const heaterDirection = lifeSupport.heaterDirection;
     const filter = lifeSupport.filter;
-    const purification = lifeSupport.purification;
     const carbonDioxideScrubber = lifeSupport.carbonDioxideScrubber;
 
     return (
@@ -1255,7 +1254,7 @@ export const LIFESUPPORT_QUERY = gql`
       ...EnvironmentPanelData
     }
     lifeSupport(simulatorId: $simulatorId) {
-      ...LifeSupportData
+      ...LifeSupportPanelData
     }
   }
   ${fragments.deckFragment}

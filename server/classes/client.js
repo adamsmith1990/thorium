@@ -119,9 +119,10 @@ export default class Client {
   setPing(ping) {
     this.ping = ping;
   }
-  connect({mobile, cards}) {
+  connect({mobile, label, cards}) {
     this.connected = true;
     this.mobile = mobile;
+    this.label = label;
     this.cards = cards || [];
     this.ping = null;
   }
@@ -149,7 +150,7 @@ export default class Client {
   setStation(station) {
     this.station = station;
   }
-  login(name, isSpaceEdventures) {
+  login(name, isSpaceEdventures = false) {
     this.loginName = name;
     this.loginState = "login";
     this.isSpaceEdventures = isSpaceEdventures;
@@ -196,7 +197,7 @@ export default class Client {
   setOverlay(overlay) {
     this.overlay = overlay;
   }
-  reset(hardReset) {
+  reset(hardReset = false) {
     this.setTraining(false);
     if (!this.isSpaceEdventures) {
       this.logout();

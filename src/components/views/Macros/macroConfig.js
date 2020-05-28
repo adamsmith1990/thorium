@@ -1,10 +1,17 @@
 import React from "react";
 import {Row, Col} from "helpers/reactstrap";
-import {withApollo} from "react-apollo";
 
 import * as Macros from "components/macros";
+import {useApolloClient} from "@apollo/client";
 
-const MacroConfig = ({action, updateAction, client, stations, clients}) => {
+const MacroConfig = ({
+  simulatorId = null,
+  action,
+  updateAction,
+  stations = [],
+  clients = [],
+}) => {
+  const client = useApolloClient();
   if (!action) return null;
   const args =
     typeof action.args === "string" ? JSON.parse(action.args) : action.args;
@@ -15,6 +22,7 @@ const MacroConfig = ({action, updateAction, client, stations, clients}) => {
       <Col sm="12">
         {EventMacro ? (
           <EventMacro
+            simulatorId={simulatorId}
             updateArgs={(argName, value) => {
               updateAction({
                 ...action,
@@ -37,4 +45,4 @@ const MacroConfig = ({action, updateAction, client, stations, clients}) => {
   );
 };
 
-export default withApollo(MacroConfig);
+export default MacroConfig;

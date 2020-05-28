@@ -1,83 +1,72 @@
 import * as React from "react";
-import {Canvas} from "react-three-fiber";
 import Controls from "./Controls";
-import CanvasApp from "./CanvasApp";
 import Library from "./Library";
 import "./styles.scss";
 import CanvasContextProvider from "./CanvasContext";
 import usePatchedSubscriptions from "../../../helpers/hooks/usePatchedSubscriptions";
-import {Entity} from "../../../generated/graphql";
+import {
+  Entity,
+  EntityDataFragmentDoc,
+  useEntitiesQuery,
+} from "../../../generated/graphql";
 import gql from "graphql-tag.macro";
-import {useApolloClient, ApolloProvider} from "@apollo/client";
+import PropertyPalette from "./PropertyPalette";
+import {useParams} from "react-router";
+import {useNavigate} from "react-router-dom";
+import CanvasWrapper from "./CanvasWrapper";
 
 const sub = gql`
-  subscription Entities($flightId: ID!) {
-    entities(flightId: $flightId) {
-      op
-      path
-      value
-      values {
-        id
-        identity {
-          name
-        }
-        appearance {
-          color
-          meshType
-          materialMapAsset
-          scale
-        }
-        location {
-          position {
-            x
-            y
-            z
-          }
-        }
-      }
+  subscription Entities($flightId: ID!, $stageId: ID!) {
+    entities(flightId: $flightId, stageId: $stageId, template: false) {
+      ...EntityData
     }
   }
+  ${EntityDataFragmentDoc}
 `;
 
+function isEntity(e: any): e is Entity {
+  return e && e.id && e?.location?.inert;
+}
+
 export default function UniversalSandboxEditor() {
-  const [recenter, setRecenter] = React.useState<{}>({});
-  const [zoomScale, setZoomScale] = React.useState(true);
-  const [selected, setSelected] = React.useState<string[]>([]);
   const [dragging, setDragging] = React.useState<Entity | undefined>();
-  const [selecting, setSelecting] = React.useState<boolean>(false);
-  const [useEntityState] = usePatchedSubscriptions<
+  const {stageId: currentStage = "root-stage"} = useParams();
+  const navigate = useNavigate();
+  const flightId = "cool flight";
+  const setCurrentStage = React.useCallback(
+    stageId => {
+      navigate(`/config/sandbox/${stageId}`);
+    },
+    [navigate],
+  );
+  const [useEntityState, storeApi] = usePatchedSubscriptions<
     Entity[],
-    {flightId: string}
-  >(sub, {flightId: "template"});
-  const entities = useEntityState(state => state.data) || [];
-  const client = useApolloClient();
+    {flightId: string; stageId: string}
+  >(sub, {flightId, stageId: currentStage});
+  const {data} = useEntitiesQuery({variables: {flightId}});
+
+  const staticEntities = data?.entities.filter(isEntity) || [];
   return (
-    <div className="universal-sandbox-editor">
-      <Canvas id="level-editor">
-        <ApolloProvider client={client}>
-          <CanvasContextProvider recenter={recenter} zoomScale={zoomScale}>
-            <CanvasApp
-              recenter={recenter}
-              selected={selected}
-              setSelected={setSelected}
-              setDragging={setDragging}
-              dragging={dragging}
-              selecting={selecting}
-              entities={entities}
-            />
-          </CanvasContextProvider>
-        </ApolloProvider>
-      </Canvas>
-      <Controls
-        recenter={() => setRecenter({})}
-        zoomScale={zoomScale}
-        setZoomScale={setZoomScale}
-        selecting={selecting}
-        hasSelected={selected && selected.length === 1}
-        setSelecting={setSelecting}
-        selectedEntity={entities.find(e => selected && e.id === selected[0])}
-      />
-      <Library setDragging={setDragging} dragging={Boolean(dragging)} />
-    </div>
+    <CanvasContextProvider>
+      <div className="universal-sandbox-editor">
+        <PropertyPalette
+          useEntityState={useEntityState}
+          currentStage={currentStage}
+          setCurrentStage={setCurrentStage}
+        />
+        <div className="level-editor-container">
+          <CanvasWrapper
+            useEntityState={useEntityState}
+            staticEntities={staticEntities}
+            storeApi={storeApi}
+            dragging={dragging}
+            setDragging={setDragging}
+          />
+          <Controls />
+        </div>
+
+        <Library setDragging={setDragging} dragging={Boolean(dragging)} />
+      </div>
+    </CanvasContextProvider>
   );
 }

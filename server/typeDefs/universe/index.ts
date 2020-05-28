@@ -1,106 +1,122 @@
 import {gql, withFilter} from "apollo-server-express";
 import {pubsub} from "../../helpers/subscriptionManager";
-import uuid from "uuid";
 import App from "../../app";
-import filterPatches, {handlePatches} from "../../helpers/filterPatches";
+import {handleInitialSubResponse} from "../../helpers/handleInitialSubResponse";
 import {Entity} from "../../classes";
 import produce from "immer";
+import {Template} from "../../classes/universe/components";
+import generateUniverse from "./generateUniverse";
 
 // We define a schema that encompasses all of the types
 // necessary for the functionality in this file.
 const schema = gql`
-  enum OperationsEnum {
-    add
-    remove
-    replace
-  }
-  interface Patch {
-    op: OperationsEnum
-    path: [JSON]
-    value: JSON
-  }
-  type EntityPatch implements Patch {
-    op: OperationsEnum
-    path: [JSON]
-    value: JSON
-    # To properly determine what patches to send
-    # down and what to filter out. This will always
-    # be null and is only used to know how to filter
-    # the patches
-    values: Entity
-  }
-  type EntitiesPatch implements Patch {
-    op: OperationsEnum
-    path: [JSON]
-    value: JSON
-    # To properly determine what patches to send
-    # down and what to filter out. This will always
-    # be null except for the initial subscription
-    # and is only used to know how to filter the patches
-    values: [Entity!]
-  }
   type Entity {
     id: ID!
+    interval: Int
+    # This property exists for client side type definitions
+    reset: Boolean
   }
   extend type Query {
     entity(id: ID!): Entity
-    entities(flightId: ID!): [Entity]!
+    entities(flightId: ID!, inert: Boolean): [Entity]!
   }
   extend type Mutation {
-    entityCreate(flightId: ID!): Entity!
+    entityCreate(flightId: ID!, template: Boolean): Entity!
     entityRemove(id: [ID!]!): String
+
+    """
+    Macro: Sandbox: Set Base Universe for Flight
+    """
+    flightSetBaseUniverse(flightId: ID, procGenKey: String): String
   }
   extend type Subscription {
-    entity(id: ID): [EntityPatch]
-    entities(flightId: ID!): [EntitiesPatch]
+    entity(id: ID): Entity
+    entities(flightId: ID!, stageId: ID, template: Boolean): [Entity]
   }
 `;
 
 const resolver = {
-  Query: {},
+  Query: {
+    entities(rootQuery, {flightId, inert}, context) {
+      let entities = App.entities.filter(e => {
+        if (flightId && e.flightId !== flightId) return false;
+        if ((inert || inert === false) && e?.location?.inert !== inert)
+          return false;
+        return true;
+      });
+      return entities;
+    },
+  },
   Mutation: {
-    entityCreate(rootQuery, {flightId}, context) {
+    entityCreate(rootQuery, {flightId, template}, context) {
       const entity = new Entity({flightId});
+      if (template) {
+        entity.template = new Template({category: "generic"});
+      }
       context.entityId = entity.id;
-      App.entities = produce(
-        App.entities,
-        draft => {
-          draft.push(entity);
-        },
-        handlePatches(context, "entities", flightId, "flightId"),
-      );
+      App.entities = produce(App.entities, draft => {
+        draft.push(entity);
+      });
+      pubsub.publish("entities", {
+        flightId,
+        entities: App.entities,
+      });
       return entity;
     },
     entityRemove(rootQuery, {id: idList}, context) {
       const entities = App.entities.filter(e => idList.includes(e.id));
       const flightId = entities[0].flightId;
-      App.entities = produce(
-        App.entities,
-        draft => {
-          entities.forEach(({id}) => {
-            draft.splice(
-              draft.findIndex(e => e.id === id),
-              1,
-            );
+      const stageIds = entities
+        .map(e => e.stageChild?.parentId || (e.stage && e.id))
+        .filter((a, i, arr) => Boolean(a) && arr.indexOf(a) === i);
+      const template = Boolean(entities.find(t => t.template));
+      App.entities = produce(App.entities, draft => {
+        entities.forEach(({id}) => {
+          draft.splice(
+            draft.findIndex(e => e.id === id),
+            1,
+          );
+        });
+      });
+      if (stageIds.length > 0) {
+        stageIds.forEach(s => {
+          pubsub.publish("entities", {
+            flightId,
+            template,
+            stageId: s,
+            entities: App.entities,
           });
-        },
-        handlePatches(context, "entities", flightId, "flightId", "entity"),
-      );
+        });
+      } else {
+        pubsub.publish("entities", {
+          flightId,
+          template,
+          entities: App.entities,
+        });
+      }
+    },
+    flightSetBaseUniverse(
+      rootQuery,
+      {
+        flightId,
+        procGenKey = "thorium",
+      }: {flightId?: string; procGenKey?: string},
+      context,
+    ) {
+      const universe = generateUniverse(flightId, procGenKey);
+      App.entities = App.entities.concat(universe);
     },
   },
   Subscription: {
     entity: {
-      resolve(rootQuery, _args, _context, info) {
-        if (rootQuery.patches.length === 1 && rootQuery.patches[0]?.values)
-          return rootQuery.patches;
-        return filterPatches(rootQuery.patches, info);
+      resolve(rootValue) {
+        return rootValue;
       },
       subscribe: withFilter(
         (rootValue, args) => {
-          const id = uuid.v4();
-          process.nextTick(() => {
+          const id = handleInitialSubResponse(id => {
             const entity = App.entities.find(e => e.id === args.id);
-            pubsub.publish(id, {id: entity.id, patches: [{values: entity}]});
+            pubsub.publish(id, entity);
           });
           return pubsub.asyncIterator([id, "entity"]);
         },
@@ -110,28 +126,44 @@ const resolver = {
       ),
     },
     entities: {
-      resolve(rootQuery, _args, _context, info) {
-        if (rootQuery.patches.length === 1 && rootQuery.patches[0]?.values)
-          return rootQuery.patches;
-        return filterPatches(rootQuery.patches, info);
+      resolve(
+        rootValue: {entities: Entity[]},
+        {flightId, template, stageId, inert = false},
+      ) {
+        let entities = rootValue.entities.filter(e => {
+          if (flightId && e.flightId !== flightId) return false;
+          if (template === true && !e.template) return false;
+          if (template === false && e.template) return false;
+          if (!inert && e?.location?.inert) return false;
+
+          const isNotStageChild = stageId && e.stageChild?.parentId !== stageId;
+          const isNotParentStage = !e.stage || stageId !== e.id;
+          if (isNotStageChild && isNotParentStage) {
+            return false;
+          }
+          return true;
+        });
+        return entities;
       },
       subscribe: withFilter(
         (rootValue, args) => {
-          const id = uuid.v4();
-          process.nextTick(() => {
-            const entities = App.entities.filter(
-              e => e.flightId === args.flightId,
-            );
+          const id = handleInitialSubResponse(id => {
             pubsub.publish(id, {
               flightId: args.flightId,
-              patches: [{values: entities}],
+              stageId: args.stageId,
+              entities: App.entities,
             });
           });
           return pubsub.asyncIterator([id, "entities"]);
         },
-        (rootValue, args) => {
-          // Add filters once they get added to the schema
-          return rootValue.flightId === args.flightId;
+        (rootValue, {flightId, template, stageId}) => {
+          if (flightId && flightId !== rootValue.flightId) return false;
+          if (template === false && rootValue.template) return false;
+          if (template === true && rootValue.template === false) return false;
+          if (stageId && rootValue.stageId !== stageId) {
+            return false;
+          }
+          return true;
         },
       ),
     },

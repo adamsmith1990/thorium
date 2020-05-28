@@ -34,6 +34,15 @@ App.on("duplicateTimelineStep", ({missionId, timelineStepId}) => {
   pubsub.publish("missionsUpdate", App.missions);
 });
 App.on(
+  "timelineDuplicateItem",
+  ({missionId, timelineStepId, timelineItemId, cb}) => {
+    const object = getTimelineObject(null, missionId);
+    const id = object.duplicateTimelineItem(timelineStepId, timelineItemId);
+    pubsub.publish("missionsUpdate", App.missions);
+    cb(id);
+  },
+);
+App.on(
   "reorderTimelineStep",
   ({simulatorId, missionId, timelineStepId, order}) => {
     const object = getTimelineObject(simulatorId, missionId);
@@ -59,11 +68,17 @@ App.on(
     timelineStepId,
     timelineItemId = uuid.v4(),
     timelineItem,
+    cb,
   }) => {
     const object = getTimelineObject(simulatorId, missionId);
-    object.addTimelineStepItem(timelineStepId, timelineItemId, timelineItem);
+    const id = object.addTimelineStepItem(
+      timelineStepId,
+      timelineItemId,
+      timelineItem,
+    );
     pubsub.publish("missionsUpdate", App.missions);
     pubsub.publish("simulatorsUpdate", App.simulators);
+    cb && cb(id);
   },
 );
 App.on(

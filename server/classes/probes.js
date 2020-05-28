@@ -8,6 +8,8 @@ export default class Probes extends System {
     super(params);
     this.class = "Probes";
     this.type = "Probes";
+    this.wing = params.wing || "right";
+
     this.name = params.name || "Probe Launcher";
     // Whether probes launching is handled by torpedos (Odyssey, Galileo)
     // Or by the probe launcher itself (Phoenix, Voyager, Magellan)
@@ -231,8 +233,8 @@ class ProbeType {
   update({name, description, size, count}) {
     if (name) this.name = name;
     if (description) this.description = description;
-    if (size) this.size = size;
-    if (count) this.count = count;
+    if (size || size === 0) this.size = size;
+    if (count || count === 0) this.count = count;
   }
 }
 class ProbeEquipment {
@@ -295,7 +297,7 @@ const probesTypes = [
     count: 20,
   },
 ];
-const probesEquipment = [
+export const probesEquipment = [
   {
     id: "probe-network-package",
     name: "Probe Network Package",

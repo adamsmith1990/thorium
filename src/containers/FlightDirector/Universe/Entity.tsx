@@ -1,53 +1,101 @@
 import * as React from "react";
-import {useFrame, useLoader, PointerEvent, Dom} from "react-three-fiber";
-import {CanvasContext, ActionType} from "./CanvasContext";
-import {useDrag} from "react-use-gesture";
-import * as THREE from "three";
-import {SphereGeometry, BoxBufferGeometry, Color} from "three";
+import {useFrame} from "react-three-fiber";
+import {CanvasContext} from "./CanvasContext";
+import {SphereGeometry, BoxBufferGeometry, Mesh, Vector3} from "three";
 import {PositionTuple} from "./CanvasApp";
 import {Entity as EntityInterface} from "generated/graphql";
 import SelectionOutline from "./SelectionOutline";
-
-const starSprite = require("./star-sprite.svg") as string;
-const circleSprite = require("./circle.svg") as string;
+// import Glow from "./entityParts/glow";
+import Light from "./entityParts/light";
+import Rings from "./entityParts/rings";
+import Clouds from "./entityParts/clouds";
+import {MeshTypeEnum} from "generated/graphql";
+import useEntityDrag from "./useEntityDrag";
+import EntityMaterial from "./EntityMaterial";
+import EntityModel from "./EntityModel";
+import useClientSystems from "./useClientSystems";
+import {StoreApi} from "zustand";
+import {PatchData} from "helpers/hooks/usePatchedSubscriptions";
+import EntitySprite from "./EntitySprite";
 
 interface EntityProps {
-  index: number;
+  static?: boolean;
   dragging?: boolean;
   library?: boolean;
-  entity: EntityInterface;
-  setSelected?: React.Dispatch<React.SetStateAction<string[]>>;
-  selected?: boolean;
-  mousePosition?: PositionTuple;
+  entity?: EntityInterface;
+  entityIndex: number;
+  stageId?: string;
+  selectedEntityIds?: string[];
+  mousePosition: React.MutableRefObject<PositionTuple>;
   isDraggingMe?: boolean;
   positionOffset?: {x: number; y: number; z: number};
   onDragStart?: () => void;
   onDrag?: (dx: number, dy: number) => void;
   onDragStop?: () => void;
+  storeApi: StoreApi<PatchData<EntityInterface[]>>;
 }
 const noop = () => {};
 
+function useRerender() {
+  const [, setState] = React.useState({});
+  return React.useCallback(() => setState({}), []);
+}
 const Entity: React.FC<EntityProps> = ({
-  index = 0,
   dragging: isDragging,
   library,
   entity,
-  setSelected,
-  selected,
+  entityIndex,
+  stageId,
+  selectedEntityIds = [],
   mousePosition,
   isDraggingMe = false,
   positionOffset = {x: 0, y: 0, z: 0},
   onDragStart = noop,
   onDrag = noop,
   onDragStop = noop,
+  storeApi,
 }) => {
-  const {id, location, appearance} = entity;
+  const rerender = useRerender();
+  const {id, location, appearance, light} =
+    entity || storeApi.getState().data[entityIndex];
+
+  const stage = storeApi.getState().data.find(s => s.id === stageId);
+
+  React.useEffect(() => {
+    // Poor man's React.memo
+    const unsub1 = storeApi.subscribe(
+      () => rerender(),
+      store => ({
+        appearance: store.data[entityIndex]?.appearance,
+        light: store.data[entityIndex]?.light,
+      }),
+      (oldObj, newObj) =>
+        oldObj?.appearance?.meshType === newObj?.appearance?.meshType &&
+        oldObj?.appearance?.cloudMapAsset ===
+          newObj?.appearance?.cloudMapAsset &&
+        oldObj?.appearance?.ringMapAsset === newObj?.appearance?.ringMapAsset &&
+        oldObj?.appearance?.scale === newObj?.appearance?.scale &&
+        oldObj.appearance?.materialMapAsset ===
+          newObj?.appearance?.materialMapAsset &&
+        oldObj.appearance?.emissiveColor ===
+          newObj?.appearance?.emissiveColor &&
+        oldObj.appearance?.emissiveIntensity ===
+          newObj?.appearance?.emissiveIntensity &&
+        oldObj.appearance?.color === newObj?.appearance?.color &&
+        oldObj?.light?.intensity === newObj?.light?.intensity &&
+        oldObj?.light?.decay === newObj?.light?.decay &&
+        oldObj?.light?.color === newObj?.light?.color,
+    );
+    return () => unsub1();
+  }, [entityIndex, rerender, storeApi]);
+
+  const selected = selectedEntityIds.includes(id);
   const size = 1;
-  const {meshType, color, modelAsset, materialMapAsset} = appearance || {};
-  const scale = appearance?.scale || 1;
+  const {meshType, cloudMapAsset, ringMapAsset} = appearance || {};
+  const scale = library ? 1 : appearance?.scale || 1;
   const {position: positionCoords} = location || {position: null};
-  const [{dragging, zoomScale}, dispatch] = React.useContext(CanvasContext);
-  const mesh = React.useRef<THREE.Mesh>(new THREE.Mesh());
+  const [{zoomScale}] = React.useContext(CanvasContext);
+  const mesh = React.useRef<Mesh>(new Mesh());
   const [position, setPosition] = React.useState(positionCoords);
 
   React.useEffect(() => {
@@ -61,59 +109,12 @@ const Entity: React.FC<EntityProps> = ({
     let zoomedScale = (1 / zoom) * 20;
     if (zoomScale || (meshType === "sprite" && !library)) {
       zoomedScale *= 2;
-      mesh.current.scale.set(zoomedScale, zoomedScale, zoomedScale);
+      mesh.current?.scale.set(zoomedScale, zoomedScale, zoomedScale);
     } else {
-      mesh.current.scale.set(scale, scale, scale);
+      mesh.current?.scale.set(scale, scale, scale);
     }
   });
 
-  const spriteTexture = useLoader(THREE.TextureLoader, starSprite);
-  const circleTexture = useLoader(THREE.TextureLoader, circleSprite);
-
-  const bind = useDrag(
-    ({delta: [dx, dy]}) => {
-      onDrag(dx, dy);
-    },
-    {eventOptions: {pointer: true, passive: false}},
-  );
-  const dragFunctions = bind();
-  const modifiedDragFunctions = {
-    onPointerMove: (e: PointerEvent) =>
-      dragFunctions.onPointerMove?.(
-        (e as unknown) as React.PointerEvent<Element>,
-      ),
-    onPointerDown: (e: PointerEvent) => {
-      if (library) return;
-      e.stopPropagation();
-      setSelected?.(selected => {
-        if (e.shiftKey) {
-          if (selected.includes(id)) {
-            return selected.filter(s => s !== id);
-          }
-          return [...selected, id];
-        }
-        if (!selected || !selected.includes(id)) {
-          return [id];
-        }
-        return selected;
-      });
-      if (dragging) return;
-      onDragStart();
-      dispatch({type: ActionType.dragging});
-      dragFunctions?.onPointerDown?.(
-        (e as unknown) as React.PointerEvent<Element>,
-      );
-    },
-    onPointerUp: (e: PointerEvent) => {
-      dispatch({type: ActionType.dropped});
-      if (isDraggingMe) {
-        onDragStop();
-      }
-      dragFunctions?.onPointerUp?.(
-        (e as unknown) as React.PointerEvent<Element>,
-      );
-    },
-  };
   let geometry = React.useMemo(() => {
     switch (meshType) {
       case "sphere":
@@ -122,69 +123,79 @@ const Entity: React.FC<EntityProps> = ({
         return new BoxBufferGeometry(size, size, size);
       default:
         break;
-      // case "cube":
-      // default:
     }
   }, [meshType, size]);
+
+  const dragFunctions = useEntityDrag(
+    onDrag,
+    onDragStart,
+    onDragStop,
+    isDraggingMe,
+    id,
+    library,
+  );
+
+  useClientSystems(
+    storeApi,
+    id,
+    mesh,
+    Boolean(isDragging),
+    mousePosition,
+    stageId,
+  );
+
   if (!library && !isDragging && (!location || !position)) return null;
   const meshPosition:
-    | THREE.Vector3
+    | Vector3
     | [number, number, number]
     | undefined = isDragging
-    ? mousePosition
+    ? mousePosition?.current
     : ([
         (position?.x || 0) + positionOffset.x,
         (position?.y || 0) + positionOffset.y,
         (position?.z || 0) + positionOffset.z,
       ] as [number, number, number]);
 
-  if (meshType === "sprite") {
+  if (stage?.stage?.childrenAsSprites) {
     return (
-      <group ref={mesh} position={meshPosition}>
-        <sprite {...modifiedDragFunctions}>
-          <spriteMaterial
-            color={new Color(color || "#fff")}
-            map={spriteTexture}
-            attach="material"
-          />
-        </sprite>
-        {selected && (
-          <sprite>
-            <spriteMaterial
-              color={0xff8800}
-              map={circleTexture}
-              attach="material"
-            />
-          </sprite>
-        )}
-        <Dom>
-          <p className="object-label">{entity.identity?.name}</p>
-        </Dom>
+      <group position={meshPosition} ref={mesh} {...dragFunctions}>
+        <EntitySprite appearance={appearance || undefined} />
       </group>
     );
   }
+  if (meshType === MeshTypeEnum.Model && appearance?.modelAsset) {
+    return (
+      <>
+        <group ref={mesh} position={meshPosition} {...dragFunctions}>
+          <EntityModel modelAsset={appearance.modelAsset} scale={scale} />
+        </group>
+        {selected && <SelectionOutline selected={mesh} />}
+      </>
+    );
+  }
+  if (!geometry) return null;
+
   return (
     <>
-      <mesh
-        uuid={id}
-        geometry={geometry}
-        position={meshPosition}
-        ref={mesh}
-        {...modifiedDragFunctions}
-      >
-        <meshStandardMaterial
-          attach="material"
-          color={new Color(color || "#fff")}
-          side={THREE.FrontSide}
-        />
-        <Dom>
-          <p className="object-label">
-            {entity.location?.position
-              ? Object.values(entity.location?.position).join(", ")
-              : ""}
-          </p>
-        </Dom>
-      </mesh>
+      <group ref={mesh} position={meshPosition}>
+        <mesh uuid={id} geometry={geometry} {...dragFunctions}>
+          <EntityMaterial
+            materialMapAsset={appearance?.materialMapAsset ?? undefined}
+            emissiveColor={appearance?.emissiveColor ?? undefined}
+            emissiveIntensity={appearance?.emissiveIntensity ?? undefined}
+            color={appearance?.color ?? undefined}
+          />
+        </mesh>
+        {light && (
+          <Light
+            intensity={light.intensity ?? undefined}
+            decay={light.decay ?? undefined}
+            color={light.color ?? undefined}
+          />
+        )}
+        {ringMapAsset && <Rings ringMapAsset={ringMapAsset} />}
+        {cloudMapAsset && <Clouds cloudMapAsset={cloudMapAsset} />}
+      </group>
       {selected && <SelectionOutline selected={mesh} />}
     </>
   );

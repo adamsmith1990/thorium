@@ -29,9 +29,11 @@ export const aspectList = [
   "interfaces",
   "tasks",
   "taskReports",
+  "dmxFixtures",
+  "taskFlows",
 ];
 
-export function addAspects(template, sim, data = App) {
+export function addAspects(template, sim: Classes.Simulator, data = App) {
   // Duplicate all of the other stuff attached to the simulator too.
   aspectList.forEach(aspect => {
     if (
@@ -39,14 +41,18 @@ export function addAspects(template, sim, data = App) {
       aspect === "commandLines" ||
       aspect === "triggers" ||
       aspect === "midiSets" ||
-      aspect === "interfaces"
-    )
+      aspect === "interfaces" ||
+      aspect === "dmxFixtures" ||
+      aspect === "taskFlows"
+    ) {
       return;
+    }
     const filterAspect = data[aspect].filter(
       a => a.simulatorId === template.simulatorId,
     );
     filterAspect.forEach(a => {
       const newAspect = cloneDeep(a);
+      newAspect.templateId = newAspect.id;
       newAspect.id = null;
       newAspect.simulatorId = sim.id;
       // Rooms need to reference their deck
@@ -147,13 +153,19 @@ export function addAspects(template, sim, data = App) {
       if (!panelData) return null;
       const panel = {...panelData};
       const id = uuid.v4();
-      sim.stations = sim.stations.map(s => ({
-        ...s,
-        cards: s.cards.map(c => ({
-          ...c,
-          component: c.component === p ? id : c.component,
-        })),
-      }));
+      sim.stations = sim.stations.map(
+        s =>
+          new Classes.Station({
+            ...s,
+            cards: s.cards.map(
+              c =>
+                new Classes.Card({
+                  ...c,
+                  component: c.component === p ? id : c.component,
+                }),
+            ),
+          }),
+      );
       data.softwarePanels.push(
         new Classes.SoftwarePanel({
           id,
@@ -254,7 +266,7 @@ const schema = gql`
     email: String
   }
   extend type Query {
-    flights(running: Boolean, id: ID): [Flight]
+    flights(running: Boolean, id: ID): [Flight!]!
     events: [String]
   }
   extend type Mutation {
@@ -280,6 +292,8 @@ const schema = gql`
     # Space EdVentures
     """
     Macro: Space EdVentures: Add Extra Crew Member
+    Requires:
+      - Space EdVentures
     """
     clientAddExtra(flightId: ID!, simulatorId: ID!, name: String!): String
   }
@@ -382,6 +396,7 @@ const resolver = {
         });
         App.simulators = App.simulators.filter(s => s.id !== simId);
       });
+      App.entities = App.entities.filter(e => e.flightId !== flightId);
       App.flights = App.flights.filter(f => f.id !== flightId);
       pubsub.publish("flightsUpdate", App.flights);
       pubsub.publish("clientChanged", App.clients);

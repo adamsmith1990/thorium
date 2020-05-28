@@ -1,8 +1,6 @@
 import React from "react";
 import {SubscriptionClient} from "subscriptions-transport-ws";
 import create, {UseStore, StoreApi} from "zustand";
-import {applyPatches} from "immer";
-import {websocketUrl} from "helpers/graphqlClient";
 import {
   separateOperations,
   print,
@@ -12,35 +10,37 @@ import {
 } from "graphql";
 import {equal} from "@wry/equality";
 
+const hostname = window.location.hostname;
+const protocol = window.location.protocol;
+const wsProtocol = protocol === "https:" ? "wss:" : "ws:";
+
+const websocketUrl =
+  process.env.NODE_ENV === "production"
+    ? `${wsProtocol}//${window.location.host}/graphql`
+    : `${wsProtocol}//${hostname}:${
+        parseInt(window.location.port || "3000", 10) + 1
+      }/graphql`;
+
 const client = new SubscriptionClient(websocketUrl, {
   reconnect: true,
 });
 
-function validateQuery(queryAST: FieldNode) {
-  const selections = queryAST.selectionSet?.selections.map(s => {
-    const selection = s as FieldNode;
-    return selection.name.value;
-  });
-  if (!selections || selections.length === 0) return false;
-  if (!selections.includes("op")) return false;
-  if (!selections.includes("value")) return false;
-  if (!selections.includes("path")) return false;
-  if (!selections.includes("values")) return false;
-  return true;
-}
+export type PatchData<SubData> = {
+  loading: boolean;
+  data: SubData;
+  tick: number;
+};
 
 function usePatchedSubscriptions<SubData, VariableDefinition>(
   queryAST: DocumentNode,
   variablesInput?: VariableDefinition | undefined,
-): [
-  UseStore<{loading: boolean; data: SubData}>,
-  StoreApi<{loading: boolean; data: SubData}>,
-] {
+): [UseStore<PatchData<SubData>>, StoreApi<PatchData<SubData>>] {
   const [useStore, api] = React.useMemo(
     () =>
-      create<{loading: boolean; data: SubData}>(() => ({
+      create<PatchData<SubData>>(() => ({
         loading: true,
         data: ([] as unknown) as SubData,
+        tick: 0,
       })),
     [],
   );
@@ -61,10 +61,6 @@ function usePatchedSubscriptions<SubData, VariableDefinition>(
     const selection = definitions.selectionSet.selections[0] as FieldNode;
     const operationName = Object.keys(separateOperations(queryAST))[0];
     const selectionName = selection.name.value;
-    if (!validateQuery(selection))
-      throw new Error(
-        "Invalid query. Query must be an implementation of the Patch type.",
-      );
     const unsubscribe = client
       .request({
         query,
@@ -73,20 +69,11 @@ function usePatchedSubscriptions<SubData, VariableDefinition>(
       })
       .subscribe({
         next: ({data}) => {
-          if (data?.[selectionName][0]?.values) {
-            // We're getting initial data.
-            api.setState({
-              loading: false,
-              data: data[selectionName][0].values,
-            });
-          } else {
-            // We're getting a patch, apply the patch with immer.
-            const patches = data?.[selectionName];
-            api.setState({
-              loading: false,
-              data: applyPatches(api.getState().data as SubData, patches),
-            });
-          }
+          api.setState(s => ({
+            loading: false,
+            data: data?.[selectionName] || [],
+            tick: s.tick + 1,
+          }));
         },
       });
     return () => unsubscribe.unsubscribe();

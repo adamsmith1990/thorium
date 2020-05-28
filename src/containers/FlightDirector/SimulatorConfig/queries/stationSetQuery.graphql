@@ -1,0 +1,26 @@
+subscription StationSetConfig {
+  stationSetUpdate {
+    id
+    name
+    crewCount
+    simulator {
+      id
+    }
+    stations {
+      name
+      description
+      tags
+      training
+      ambiance
+      login
+      messageGroups
+      executive
+      widgets
+      layout
+      cards {
+        name
+        component
+      }
+    }
+  }
+}

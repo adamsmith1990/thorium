@@ -211,18 +211,18 @@ class EnvironmentDecks extends Component {
   };
 
   updatePressure = (deck, pressure, oxygen, carbonDioxide, Nitrogen) => {
-    const oldPressure = (oxygen + carbonDioxide + Nitrogen + 1) / 100;
+    const oldPressure = (oxygen + carbonDioxide + Nitrogen) / 100;
     const pressureRate = pressure / oldPressure;
-    const newRate =
-      pressureRate + (pressureRate - 1) / (oxygen + carbonDioxide + Nitrogen);
     const newPressure =
-      (oxygen * newRate + carbonDioxide * newRate + Nitrogen * newRate + 1) /
+      (oxygen * pressureRate +
+        carbonDioxide * pressureRate +
+        Nitrogen * pressureRate) /
       100;
     const variables = {
       deckID: deck,
-      atmOxygen: oxygen * newRate,
-      atmCarbonDioxide: carbonDioxide * newRate,
-      atmNitrogen: Nitrogen * newRate,
+      atmOxygen: oxygen * pressureRate,
+      atmCarbonDioxide: carbonDioxide * pressureRate,
+      atmNitrogen: Nitrogen * pressureRate,
       atmPressure: newPressure,
     };
     const mutation = gql`

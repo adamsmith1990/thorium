@@ -5,7 +5,7 @@ export default class Environment {
     this.id = params.id || uuid.v4();
     this.class = "Environment";
     this.atmOxygen = params.atmOxygen || 21;
-    this.atmNitrogen = params.atmNitrogen || 78;
+    this.atmNitrogen = params.atmNitrogen || 79;
     this.atmCarbonDioxide = params.atmCarbonDioxide || 0;
     this.atmHumidity = params.atmHumidity || 0.45;
     this.atmTemperature = params.atmTemperature || 70;
@@ -70,7 +70,7 @@ export default class Environment {
   }
   reset() {
     this.atmOxygen = 21;
-    this.atmNitrogen = 78;
+    this.atmNitrogen = 79;
     this.atmCarbonDioxide = 0;
     this.atmHumidity = 0.45;
     this.atmTemperature = 70;

@@ -72,13 +72,13 @@ const EnvironmentProcess = () => {
           const nitrogenTankRate = lifeSupport.nitrogenTankRate;
 
           //Panel Rates
-          const oxygenTransfer = lifeSupport.oxygenTransfer / 600; //It takes 10 minutes to restore breathable levels to an entire deck
+          const oxygenTransfer = lifeSupport.oxygenTransfer / 60; //It takes 1 minute to restore breathable levels to an entire deck
           const oxygenDirection = lifeSupport.oxygenDirection;
-          const nitrogenTransfer = lifeSupport.nitrogenTransfer / 77; //It takes 10 minutes to restore breathable levels to an entire deck
+          const nitrogenTransfer = lifeSupport.nitrogenTransfer / 7.7; //It takes 1 minute to restore breathable levels to an entire deck
           const nitrogenDirection = lifeSupport.nitrogenDirection;
-          const electrolysis = lifeSupport.electrolysis / 600;
+          const electrolysis = lifeSupport.electrolysis / 60;
           const electrolysisDirection = lifeSupport.electrolysisDirection;
-          const humidifier = lifeSupport.humidifier / 600;
+          const humidifier = lifeSupport.humidifier / 60;
           const humidifierDirection = lifeSupport.humidifierDirection;
           const heater = lifeSupport.heater / 60;
           const heaterDirection = lifeSupport.heaterDirection;
@@ -203,6 +203,7 @@ const EnvironmentProcess = () => {
               const atmHumidity = environment.atmHumidity;
               const atmTemperature = environment.atmTemperature;
 
+              //Flight Director Controls
               const atmOxygenRate = environment.atmOxygenRate;
               const atmNitrogenRate = environment.atmNitrogenRate;
               const atmCarbonDioxideRate = environment.atmCarbonDioxideRate;
@@ -268,13 +269,26 @@ const EnvironmentProcess = () => {
                 oxygenConsumptionRate -
                 carbonDioxideScrubber * activeRate * noCarbonDioxide +
                 atmCarbonDioxideRate;
+
+              const oldPressure =
+                (newAtmOxygen + newAtmCarbonDioxide + newAtmNitrogen) / 100;
+              const pressureRate =
+                (oldPressure + atmPressureRate) / oldPressure;
+
+              newAtmOxygen = newAtmOxygen * pressureRate;
+              newAtmCarbonDioxide = newAtmCarbonDioxide * pressureRate;
+              newAtmNitrogen = newAtmNitrogen * pressureRate;
+
+              const newAtmPressure =
+                (newAtmOxygen + newAtmCarbonDioxide + newAtmNitrogen) / 100;
+
+              const totalAtmosphere =
+                newAtmOxygen + newAtmNitrogen + newAtmCarbonDioxide;
+
               let newAtmHumidity =
                 atmHumidity +
                 humidifier * humidifierRate * activeRate +
                 atmHumidityRate;
-              let totalAtmosphere =
-                atmOxygen + atmNitrogen + atmCarbonDioxide + 1;
-              let newAtmPressure = totalAtmosphere / 100 + atmPressureRate;
               let newAtmTemperature =
                 atmTemperature +
                 heater * heaterRate * activeRate +

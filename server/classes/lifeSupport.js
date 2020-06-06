@@ -1,4 +1,5 @@
 import {System} from "./generic";
+import {updatePi} from "../helpers/pi-relay.js";
 
 export default class LifeSupport extends System {
   constructor(simulatorId, params = {}) {
@@ -98,6 +99,9 @@ export default class LifeSupport extends System {
     if (cleanContaminant || cleanContaminant === null)
       this.cleanContaminant = cleanContaminant;
     if (activeDeck || activeDeck === null) this.activeDeck = activeDeck;
+
+    // Send updated data to the
+    updatePi(this);
   }
   reset() {
     this.waterTank = 10;

@@ -4,6 +4,14 @@ import throttle from "../helpers/throttle";
 import uuid from "uuid";
 //import uuid from "uuid";
 
+import {
+  waterTankMax,
+  wasteTankMax,
+  hydrogenTankMax,
+  oxygenTankMax,
+  nitrogenTankMax,
+} from "./environment-params.js";
+
 const EnvironmentProcess = () => {
   //Setting the initial Active Deck to Deck 1
   App.flights.forEach(f => {
@@ -81,12 +89,6 @@ const EnvironmentProcess = () => {
           let waterConsumptionRate = 0.005; //Complete water loss in about 30 minutes
           waterConsumptionRate *= personCapacityRatio;
           //(Anything else that should affect water consumption?)
-
-          const waterTankMax = 10;
-          const wasteTankMax = 4; //If waste is not processed, water will be lost after 10 minutes
-          const hydrogenTankMax = 30;
-          const oxygenTankMax = 10;
-          const nitrogenTankMax = 78;
 
           let electrolysisRate;
           if (electrolysisDirection === "Forward") {

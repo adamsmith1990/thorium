@@ -336,7 +336,7 @@ const EnvironmentProcess = () => {
               if (percentCarbonDioxide > 0.001) {
                 warning = true;
               }
-              if (percentNitrogen < 0.77 || percentNitrogen > 0.79) {
+              if (percentNitrogen < 0.78 || percentNitrogen > 0.8) {
                 warning = true;
               }
               if (newAtmTemperature < 65 || newAtmTemperature > 80) {

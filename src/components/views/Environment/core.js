@@ -315,7 +315,7 @@ class EnvironmentDecks extends Component {
         if (percentCarbonDioxide > 0.001) {
           return true;
         }
-        if (percentNitrogen < 0.77 || percentNitrogen > 0.79) {
+        if (percentNitrogen < 0.78 || percentNitrogen > 0.8) {
           return true;
         }
         if (atmHumidity < 0.3 || atmHumidity > 0.7) {

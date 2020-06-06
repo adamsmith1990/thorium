@@ -204,8 +204,8 @@ class EnvironmentDecks extends Component {
                           : ""
                       }
                       ${
-                        d.environment.percentNitrogen < 0.77 ||
-                        d.environment.percentNitrogen > 0.79
+                        d.environment.percentNitrogen < 0.78 ||
+                        d.environment.percentNitrogen > 0.8
                           ? "warning"
                           : ""
                       }

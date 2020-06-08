@@ -1,8 +1,8 @@
 import Axios from "axios";
 import {waterTankMax, oxygenTankMax} from "../processes/environment-params.js";
 
-const PI_PORT = 4057;
-const PI_URL = "http://localhost";
+const PI_PORT = 8080;
+const PI_URL = "http://192.168.1.137";
 
 function normalize(value, max) {
   return parseInt((value / max) * 10);

@@ -100,7 +100,7 @@ export default class LifeSupport extends System {
       this.cleanContaminant = cleanContaminant;
     if (activeDeck || activeDeck === null) this.activeDeck = activeDeck;
 
-    // Send updated data to the
+    // Send updated data to the Pi
     updatePi(this);
   }
   reset() {
